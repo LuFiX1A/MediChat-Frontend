@@ -1,0 +1,58 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>
+      MediChat 🩺
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  
+  <div class="chat-container">
+    <div *ngFor="let msg of historialChat" 
+         [class.mensaje-usuario]="msg.remitente === 'usuario'"
+         [class.mensaje-bot]="msg.remitente === 'bot'">
+      
+      <div class="burbuja">
+        {{ msg.texto }}
+      </div>
+
+      <div *ngIf="msg.doctores && msg.doctores.length > 0" class="contenedor-doctores">
+        <ion-card *ngFor="let doc of msg.doctores">
+          <ion-card-header>
+            <ion-card-subtitle>{{ doc.especialidad }}</ion-card-subtitle>
+            <ion-card-title>{{ doc.nombre }}</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            {{ doc.motivo }}
+            <br><br>
+            <ion-button expand="block" (click)="agendarCita(doc)">
+              📅 Agendar Cita
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+    </div>
+
+    <div *ngIf="cargando" class="mensaje-bot">
+      <div class="burbuja escribiendo">
+        Analizando síntomas... 🩺
+      </div>
+    </div>
+  </div>
+
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-item lines="none">
+      <ion-input placeholder="Describe tus síntomas..." 
+                 [(ngModel)]="mensajeUsuario" 
+                 (keyup.enter)="enviar()"></ion-input>
+      <ion-button slot="end" (click)="enviar()">
+        Enviar
+      </ion-button>
+    </ion-item>
+  </ion-toolbar>
+</ion-footer>
