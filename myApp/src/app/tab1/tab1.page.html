@@ -1,57 +1,33 @@
-<ion-header [translucent]="true">
-  <ion-toolbar color="primary">
-    <ion-title>
-      MediChat 🩺
-    </ion-title>
+<ion-header>
+  <ion-toolbar>
+    <ion-title>MediChat</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
-  
+<ion-content>
   <div class="chat-container">
-    <div *ngFor="let msg of historialChat" 
-         [class.mensaje-usuario]="msg.remitente === 'usuario'"
-         [class.mensaje-bot]="msg.remitente === 'bot'">
-      
+    <div *ngFor="let m of mensajes" [class]="m.rol === 'usuario' ? 'mensaje-usuario' : 'mensaje-bot'">
       <div class="burbuja">
-        {{ msg.texto }}
-      </div>
-
-      <div *ngIf="msg.doctores && msg.doctores.length > 0" class="contenedor-doctores">
-        <ion-card *ngFor="let doc of msg.doctores">
-          <ion-card-header>
-            <ion-card-subtitle>{{ doc.especialidad }}</ion-card-subtitle>
-            <ion-card-title>{{ doc.nombre }}</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            {{ doc.motivo }}
-            <br><br>
-            <ion-button expand="block" (click)="agendarCita(doc)">
-              📅 Agendar Cita
-            </ion-button>
-          </ion-card-content>
-        </ion-card>
-      </div>
-
-    </div>
-
-    <div *ngIf="cargando" class="mensaje-bot">
-      <div class="burbuja escribiendo">
-        Analizando síntomas... 🩺
+        {{ m.texto }}
       </div>
     </div>
   </div>
-
 </ion-content>
 
 <ion-footer>
   <ion-toolbar>
-    <ion-item lines="none">
-      <ion-input placeholder="Describe tus síntomas..." 
-                 [(ngModel)]="mensajeUsuario" 
-                 (keyup.enter)="enviar()"></ion-input>
-      <ion-button slot="end" (click)="enviar()">
-        Enviar
+    <ion-item lines="none" class="input-item">
+      <ion-button fill="clear" (click)="ejecutarCamara()" slot="start">
+        <ion-icon name="camera"></ion-icon>
+      </ion-button>
+
+      <ion-input [(ngModel)]="mensajeUsuario" 
+                 placeholder="Escribe aquí..." 
+                 (keyup.enter)="enviarSoloTexto()">
+      </ion-input>
+
+      <ion-button fill="clear" (click)="enviarSoloTexto()" slot="end">
+        <ion-icon name="send"></ion-icon>
       </ion-button>
     </ion-item>
   </ion-toolbar>

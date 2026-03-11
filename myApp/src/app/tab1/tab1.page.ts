@@ -1,88 +1,65 @@
-import { Component, inject, ViewChild } from '@angular/core'; // <--- Agregamos ViewChild
-import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
+import { IonicModule } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, IonContent } from '@ionic/angular'; // <--- Agregamos IonContent
-import { ChatbotService, Recomendacion } from '../services/chatbot';
-import { Router } from '@angular/router';
-
-interface MensajeChat {
-  remitente: 'usuario' | 'bot';
-  texto: string;
-  doctores?: Recomendacion[];
-}
+import { CommonModule } from '@angular/common';
+import { ChatbotService } from '../services/chatbot'; 
+import { addIcons } from 'ionicons';
+import { camera, send } from 'ionicons/icons';
 
 @Component({
   selector: 'app-tab1',
-  templateUrl: './tab1.page.html',
-  styleUrls: ['./tab1.page.scss'],
+  templateUrl: 'tab1.page.html',
+  styleUrls: ['tab1.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule]
+  imports: [IonicModule, FormsModule, CommonModule],
 })
 export class Tab1Page {
-  private chatbotService = inject(ChatbotService);
-  private router = inject(Router);
+  mensajeUsuario: string = "";
+  mensajes: any[] = [];
 
-  // CONTROL DEL SCROLL
-  @ViewChild(IonContent, { static: false }) content!: IonContent;
-
-  mensajeUsuario: string = '';
-  
-  // SALUDO FORMAL
-  historialChat: MensajeChat[] = [
-    { 
-      remitente: 'bot', 
-      texto: 'Bienvenido. Soy su asistente médico virtual. Por favor, describa sus síntomas para analizar su caso y recomendarle al especialista adecuado.' 
-    }
-  ];
-  cargando: boolean = false;
-
-  // Función para bajar el scroll automáticamente
-  scrollToBottom() {
-    setTimeout(() => {
-      this.content.scrollToBottom(400); // 400ms de animación suave
-    }, 100); // Pequeña espera para que Angular pinte el mensaje nuevo
+  constructor(private chatbotService: ChatbotService) {
+    // Registramos ambos iconos para que sean visibles
+    addIcons({ camera, send });
   }
 
-  enviar() {
+  // FUNCIÓN 1: SOLO ENVIAR TEXTO AL CHAT
+  enviarSoloTexto() {
     if (!this.mensajeUsuario.trim()) return;
-    
-    const textoEnviado = this.mensajeUsuario;
-    this.historialChat.push({ remitente: 'usuario', texto: textoEnviado });
-    this.mensajeUsuario = ''; 
-    this.cargando = true;
-    
-    // 1. Scroll al enviar mensaje del usuario
-    this.scrollToBottom();
 
-    this.chatbotService.enviarMensaje(textoEnviado).subscribe({
-      next: (aux: any) => {
-        this.cargando = false;
-        const datos = aux.respuesta || aux; 
-        
-        this.historialChat.push({
-          remitente: 'bot',
-          texto: datos.mensaje_al_usuario,
-          doctores: datos.recomendaciones
-        });
-
-        // 2. Scroll al recibir respuesta del bot
-        this.scrollToBottom();
-      },
-      error: (e) => {
-        this.cargando = false;
-        this.historialChat.push({ remitente: 'bot', texto: 'Error de conexión. Intente nuevamente.' });
-        // 3. Scroll también si hay error
-        this.scrollToBottom();
-      }
+    this.mensajes.push({
+      rol: 'usuario',
+      texto: this.mensajeUsuario
     });
+
+    console.log("Enviando texto:", this.mensajeUsuario);
+    this.mensajeUsuario = "";
   }
 
-  agendarCita(doctor: Recomendacion) {
-    this.router.navigate(['/agendar-cita'], { 
-      queryParams: { 
-        idDoctor: doctor.id_doctor,
-        nombreDoctor: doctor.nombre 
-      } 
-    });
+  // FUNCIÓN 2: ABRIR CÁMARA Y ENVIAR AL BACKEND
+  async ejecutarCamara() {
+    console.log("Iniciando proceso de cámara...");
+    
+    try {
+      // 1. Llamamos al servicio (esto abre la cámara/galería)
+      const res: any = await this.chatbotService.enviarConFoto(this.mensajeUsuario || "Consulta con imagen");
+      
+      // 2. Agregamos el aviso de que se envió la foto
+      this.mensajes.push({
+        rol: 'usuario',
+        texto: "📷 Foto enviada para análisis."
+      });
+
+      // 3. Agregamos la respuesta del Bot (IA)
+      this.mensajes.push({
+        rol: 'bot',
+        texto: res.diagnostico_ia?.mensaje || "Análisis completado con éxito.",
+        grado: res.analisis_visual?.grado
+      });
+
+      this.mensajeUsuario = ""; 
+    } catch (error) {
+      console.error("Error al usar la cámara o conectar con el servidor:", error);
+      alert("No se pudo completar el análisis. Revisa que el servidor de Python esté corriendo.");
+    }
   }
 }
