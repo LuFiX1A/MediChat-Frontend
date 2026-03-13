@@ -1,34 +1,47 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-title>MediChat</ion-title>
+<ion-header lines="none">
+  <ion-toolbar color="primary">
+    <ion-title>Mi Perfil</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
-  <div class="chat-container">
-    <div *ngFor="let m of mensajes" [class]="m.rol === 'usuario' ? 'mensaje-usuario' : 'mensaje-bot'">
-      <div class="burbuja">
-        {{ m.texto }}
-      </div>
+  <div class="profile-header">
+    <div class="avatar-container">
+      <ion-icon name="person-circle-outline"></ion-icon>
     </div>
+    <h3>Usuario MediChat</h3>
+    <p>Versión 1.0.4 Beta</p>
+  </div>
+
+  <ion-list lines="inset" class="info-list">
+    <ion-list-header>
+      <ion-label>SEGURIDAD Y LEGAL</ion-label>
+    </ion-list-header>
+
+    <ion-item>
+      <ion-icon name="shield-checkmark-outline" slot="start" color="success"></ion-icon>
+      <ion-label>
+        <h2>Protección de Datos</h2>
+        <p>Tus fotos se procesan de forma anónima.</p>
+      </ion-label>
+    </ion-item>
+
+    <ion-item class="disclaimer-item">
+      <ion-icon name="alert-circle-outline" slot="start" color="warning"></ion-icon>
+      <ion-label class="ion-text-wrap">
+        <h2>Aviso Legal Importante</h2>
+        <p>
+          Esta aplicación utiliza IA para orientación preliminar. 
+          <b>No es un diagnóstico médico oficial.</b> En caso de emergencia, contacte al 911 o acuda a un hospital.
+        </p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+
+  <div class="ion-padding">
+    <ion-button expand="block" fill="outline" color="danger" (click)="confirmarLimpieza()">
+      <ion-icon name="trash-outline" slot="start"></ion-icon>
+      Limpiar todos los datos
+    </ion-button>
   </div>
 </ion-content>
-
-<ion-footer>
-  <ion-toolbar>
-    <ion-item lines="none" class="input-item">
-      <ion-button fill="clear" (click)="ejecutarCamara()" slot="start">
-        <ion-icon name="camera"></ion-icon>
-      </ion-button>
-
-      <ion-input [(ngModel)]="mensajeUsuario" 
-                 placeholder="Escribe aquí..." 
-                 (keyup.enter)="enviarSoloTexto()">
-      </ion-input>
-
-      <ion-button fill="clear" (click)="enviarSoloTexto()" slot="end">
-        <ion-icon name="send"></ion-icon>
-      </ion-button>
-    </ion-item>
-  </ion-toolbar>
-</ion-footer>

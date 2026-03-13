@@ -1,0 +1,36 @@
+$color-azul-oscuro: #2e4a70;
+
+.profile-header {
+  text-align: center;
+  padding: 40px 20px;
+  background: white;
+  margin-bottom: 20px;
+  border-radius: 0 0 30px 30px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+
+  .avatar-container {
+    font-size: 100px;
+    color: $color-azul-oscuro;
+    margin-bottom: 10px;
+  }
+
+  h3 { font-weight: 800; color: $color-azul-oscuro; margin: 0; }
+  p { color: #888; margin-top: 5px; }
+}
+
+.info-list {
+  background: transparent;
+  ion-item {
+    --background: white;
+    margin: 8px 16px;
+    border-radius: 12px;
+    --border-style: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+  }
+}
+
+.disclaimer-item {
+  border: 1px solid #ffd54f;
+  background: #fff9c4 !important;
+  --background: #fff9c4;
+}

@@ -1,10 +1,14 @@
-import { Component } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { Component, ViewChild, OnInit } from '@angular/core';
+import { IonicModule, IonContent, ToastController, AlertController } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ChatbotService } from '../services/chatbot'; 
 import { addIcons } from 'ionicons';
-import { camera, send } from 'ionicons/icons';
+import { 
+  camera, send, medkitOutline, chatbubbleEllipsesOutline, 
+  cameraOutline, medicalOutline, trashOutline, alertCircle, 
+  informationCircleOutline, personCircleOutline 
+} from 'ionicons/icons';
 
 @Component({
   selector: 'app-tab1',
@@ -13,53 +17,119 @@ import { camera, send } from 'ionicons/icons';
   standalone: true,
   imports: [IonicModule, FormsModule, CommonModule],
 })
-export class Tab1Page {
+export class Tab1Page implements OnInit {
+  @ViewChild(IonContent) content!: IonContent;
+
   mensajeUsuario: string = "";
   mensajes: any[] = [];
+  cargando: boolean = false;
 
-  constructor(private chatbotService: ChatbotService) {
-    // Registramos ambos iconos para que sean visibles
-    addIcons({ camera, send });
-  }
-
-  // FUNCIÓN 1: SOLO ENVIAR TEXTO AL CHAT
-  enviarSoloTexto() {
-    if (!this.mensajeUsuario.trim()) return;
-
-    this.mensajes.push({
-      rol: 'usuario',
-      texto: this.mensajeUsuario
+  constructor(
+    private chatbotService: ChatbotService,
+    private toastCtrl: ToastController,
+    private alertCtrl: AlertController
+  ) {
+    addIcons({ 
+      camera, send, medkitOutline, chatbubbleEllipsesOutline, 
+      cameraOutline, medicalOutline, trashOutline, alertCircle,
+      informationCircleOutline, personCircleOutline
     });
-
-    console.log("Enviando texto:", this.mensajeUsuario);
-    this.mensajeUsuario = "";
   }
 
-  // FUNCIÓN 2: ABRIR CÁMARA Y ENVIAR AL BACKEND
-  async ejecutarCamara() {
-    console.log("Iniciando proceso de cámara...");
-    
-    try {
-      // 1. Llamamos al servicio (esto abre la cámara/galería)
-      const res: any = await this.chatbotService.enviarConFoto(this.mensajeUsuario || "Consulta con imagen");
-      
-      // 2. Agregamos el aviso de que se envió la foto
-      this.mensajes.push({
-        rol: 'usuario',
-        texto: "📷 Foto enviada para análisis."
-      });
-
-      // 3. Agregamos la respuesta del Bot (IA)
-      this.mensajes.push({
-        rol: 'bot',
-        texto: res.diagnostico_ia?.mensaje || "Análisis completado con éxito.",
-        grado: res.analisis_visual?.grado
-      });
-
-      this.mensajeUsuario = ""; 
-    } catch (error) {
-      console.error("Error al usar la cámara o conectar con el servidor:", error);
-      alert("No se pudo completar el análisis. Revisa que el servidor de Python esté corriendo.");
+  ngOnInit() {
+    const historial = localStorage.getItem('chat_history');
+    if (historial) {
+      this.mensajes = JSON.parse(historial);
+      this.scrollAlFinal();
     }
+  }
+
+  guardarEnLocal() {
+    localStorage.setItem('chat_history', JSON.stringify(this.mensajes));
+  }
+
+  scrollAlFinal() {
+    setTimeout(() => {
+      if (this.content) { this.content.scrollToBottom(300); }
+    }, 150);
+  }
+
+  async mostrarToast(msj: string, color: string = 'danger') {
+    const toast = await this.toastCtrl.create({
+      message: msj, duration: 3000, position: 'bottom', color: color,
+      buttons: [{ text: 'OK', role: 'cancel' }]
+    });
+    toast.present();
+  }
+
+  async enviarSoloTexto() {
+    if (!this.mensajeUsuario.trim()) return;
+    
+    const textoParaEnviar = this.mensajeUsuario;
+    this.mensajes.push({ rol: 'usuario', texto: textoParaEnviar });
+    this.mensajeUsuario = "";
+    this.cargando = true;
+    this.scrollAlFinal();
+
+    try {
+      // Simulación de respuesta o llamada a servicio de texto si existe
+      // res = await this.chatbotService.enviarTexto(textoParaEnviar);
+      this.guardarEnLocal();
+    } catch (e) {
+      this.mostrarToast("No se pudo enviar el mensaje. Revisa tu conexión.");
+    } finally {
+      this.cargando = false;
+      this.scrollAlFinal();
+    }
+  }
+
+  async botonAbrirCamara() {
+    this.cargando = true;
+    this.scrollAlFinal();
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    try {
+      const res: any = await this.chatbotService.enviarConFoto(this.mensajeUsuario || "Análisis de imagen");
+      
+      if (res && res.fotoUrlLocal) {
+        this.mensajes.push({ 
+          rol: 'usuario', 
+          texto: "Imagen enviada para análisis.",
+          imagen: res.fotoUrlLocal 
+        });
+
+        this.mensajes.push({ 
+          rol: 'bot', 
+          texto: res.diagnostico_ia?.mensaje || res.resultado || "Análisis completado.",
+          grado: res.analisis_visual?.grado || res.grado_deteccion 
+        });
+
+        this.guardarEnLocal();
+        this.mensajeUsuario = "";
+      }
+    } catch (error) {
+      this.mostrarToast("Error en el servidor médico. Inténtalo de nuevo.");
+    } finally {
+      this.cargando = false;
+      this.scrollAlFinal();
+    }
+  }
+
+  async borrarHistorial() {
+    const alert = await this.alertCtrl.create({
+      header: '¿Borrar chat?',
+      message: 'Esta acción no se puede deshacer.',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        { 
+          text: 'Borrar', 
+          handler: () => {
+            this.mensajes = [];
+            localStorage.removeItem('chat_history');
+          }
+        }
+      ]
+    });
+    alert.present();
   }
 }
