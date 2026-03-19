@@ -1,35 +1,73 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-
-export interface Recomendacion {
-  id_doctor: string;
-  nombre: string;
-  especialidad: string;
-  motivo: string;
-}
-
-export interface RespuestaChatbot {
-  es_medico: boolean;
-  mensaje_al_usuario: string;
-  recomendaciones: Recomendacion[];
-}
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { firstValueFrom } from 'rxjs'; // Recomendado para Angular moderno
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatbotService {
-
-  // Tu API en Render
-  private apiUrl = 'https://api-telemedicina-final.onrender.com/chat';
+  // 🚩 RECUERDA: Cambia esto por tu URL de Render cuando desplegues
+  private apiUrl = 'http://localhost:8000/analyze-full';
 
   constructor(private http: HttpClient) { }
 
-  enviarMensaje(mensaje: string, contexto: string = 'Ninguno'): Observable<RespuestaChatbot> {
-    const body = {
-      mensaje: mensaje,
-      contexto_medico: contexto
-    };
-    return this.http.post<RespuestaChatbot>(this.apiUrl, body);
+  /**
+   * Abre la cámara o galería, procesa la imagen y la envía 
+   * junto con el texto al "Cerebro Total" del backend.
+   */
+  // services/chatbot.ts
+
+  async enviarConFoto(texto: string, archivo?: File) { // <--- Agregamos 'archivo?'
+    try {
+      let blob: Blob;
+      let webPath: string | undefined;
+
+      if (archivo) {
+        // CASO A: Viene del selector de archivos (PC/Web)
+        blob = archivo;
+        webPath = URL.createObjectURL(archivo);
+      } else {
+        // CASO B: Viene de la Cámara Nativa (Capacitor)
+        const image = await Camera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Prompt
+        });
+
+        const response = await fetch(image.webPath!);
+        blob = await response.blob();
+        webPath = image.webPath;
+      }
+
+      // 3. Crear el paquete FormData
+      const formData = new FormData();
+      formData.append('file', blob, `analisis_${Date.now()}.jpg`);
+      formData.append('user_text', texto || "Análisis de imagen");
+
+      // 4. Enviar al Backend
+      const result = await firstValueFrom(this.http.post(this.apiUrl, formData));
+
+      return {
+        ...result,
+        fotoUrlLocal: webPath
+      };
+
+    } catch (error) {
+      console.error("Error en el servicio de Chatbot:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Envía solo texto (sin imagen) al mismo endpoint inteligente.
+   */
+  async enviarSoloTexto(texto: string) {
+    const formData = new FormData();
+    formData.append('user_text', texto);
+
+    // Al no agregar 'file', FastAPI lo recibirá como None
+    return firstValueFrom(this.http.post(this.apiUrl, formData));
   }
 }

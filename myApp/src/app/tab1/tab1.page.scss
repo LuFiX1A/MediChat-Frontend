@@ -1,125 +1,274 @@
-// --- VARIABLES DE PALETA ---
-$color-dark-blue: #2E4A70;
-$color-mid-blue: #73C7E3;
-$color-light-blue: #9EBEEB;
-$color-subtle-blue: #B1C8D6;
-$color-grey-blue: #91A4B3;
-$color-mint-green: #86CBB3;
-$color-off-white: #FFF9F0;
-$color-pure-white: #FFFFFF;
-$color-black: #000000;
-$color-bg-premium: #E8EFF5; 
+$color-azul-oscuro: #2e4a70;
+$color-azul-claro: #73c7e3;
+$color-bg-premium: #e8eff5;
 
-// 1. HEADER
-ion-header {
-  ion-toolbar {
-    --background: #{$color-dark-blue};
-    --border-color: transparent;
-    ion-title {
-      color: $color-off-white !important;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      font-size: 20px;
-    }
-    ion-buttons ion-back-button {
-      --color: #{$color-off-white} !important;
-      color: $color-off-white !important;
-    }
-  }
-}
-
-// 2. CHAT
 ion-content {
   --background: #{$color-bg-premium};
-  
-  .chat-container {
-    padding: 20px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-  }
 
-  .burbuja {
-    padding: 14px 18px;
-    font-size: 16px;
-    line-height: 1.5;
-    max-width: 85%;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  }
+  .welcome-container {
+    padding: 25px;
+    padding-top: 50px;
+    // Agregamos un margen inferior para que no choque con el inicio del chat
+    margin-bottom: 10px;
 
-  .mensaje-usuario {
-    align-self: flex-end;
-    display: flex;
-    justify-content: flex-end;
-    .burbuja {
-      background-color: $color-dark-blue; 
-      color: $color-pure-white;
-      border-radius: 18px 18px 4px 18px;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-  }
+    .welcome-card {
+      background: white;
+      border-radius: 28px;
+      padding: 30px 20px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(46, 74, 112, 0.08);
+      position: relative;
+      overflow: hidden;
 
-  .mensaje-bot {
-    align-self: flex-start;
-    display: flex;
-    justify-content: flex-start;
-    .burbuja {
-      background-color: $color-pure-white;
-      color: #333333;
-      border-radius: 18px 18px 18px 4px;
-      border: 1px solid rgba(0,0,0,0.05);
-    }
-  }
-
-  .escribiendo {
-    font-style: italic;
-    color: $color-grey-blue;
-    font-size: 14px;
-    margin-left: 10px;
-  }
-
-  // 3. TARJETAS
-  .contenedor-doctores {
-    width: 100%;
-    margin-top: 10px;
-    padding: 0 5px;
-    
-    ion-card {
-      margin-inline: 0; margin-bottom: 15px;
-      border-radius: 16px; background-color: $color-pure-white;
-      box-shadow: 0 4px 12px rgba(46, 74, 112, 0.1);
-      border: none;
-
-      ion-card-header {
-        background-color: rgba(115, 199, 227, 0.15);
-        padding: 15px;
-        ion-card-subtitle { color: $color-dark-blue; font-weight: 700; font-size: 12px; text-transform: uppercase; }
-        ion-card-title { color: $color-black; font-weight: 800; font-size: 22px; margin-top: 5px; }
+      .card-actions {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 5px;
+        z-index: 10;
       }
-      ion-card-content {
-        padding: 20px; color: #444; font-size: 15px;
-        ion-button {
-          margin-top: 20px; height: 50px; font-weight: 700;
-          --background: #{$color-mint-green};
-          --color: #{$color-dark-blue};
-          --border-radius: 12px;
-          --box-shadow: 0 4px 6px rgba(134, 203, 179, 0.3);
+
+      .icon-circle {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, $color-azul-claro 0%, $color-azul-oscuro 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 35px;
+      }
+
+      h2 {
+        color: $color-azul-oscuro;
+        font-weight: 800;
+        margin-bottom: 5px;
+      }
+
+      .subtitle {
+        color: #666;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 25px;
+        display: block;
+      }
+
+      .capabilities-text {
+        text-align: left;
+        background: #f9fbfd;
+        border-radius: 20px;
+        padding: 18px;
+        border: 1px solid #f0f4f8;
+        margin-top: 20px;
+
+        .capability-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 16px;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          .icon {
+            font-size: 1.3rem;
+            line-height: 1;
+          }
+
+          .text {
+            font-size: 0.88rem;
+            line-height: 1.4;
+            color: #444 !important;
+
+            b {
+              color: $color-azul-oscuro;
+              display: block;
+              margin-bottom: 2px;
+            }
+          }
         }
       }
     }
   }
+
+  // Estilos del Chat (Burbujas mejoradas)
+  .chat-container {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; // Un poco más de espacio entre mensajes
+    padding-bottom: 60px;
+  }
+
+  .burbuja {
+    padding: 12px 18px;
+    max-width: 80%; // Bajamos un poco para dejar aire en los bordes
+    font-size: 15px;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+
+    // SOLUCIÓN CLAVE: Permite que la burbuja crezca horizontalmente 
+    // antes de saltar de línea y mantiene el texto legible.
+    width: fit-content;
+    word-wrap: break-word;
+    white-space: pre-wrap; // Respeta saltos de línea del backend
+  }
+
+  .mensaje-usuario {
+    display: flex;
+    justify-content: flex-end; // Empuja la burbuja a la derecha
+    width: 100%;
+
+    .burbuja {
+      background-color: $color-azul-oscuro;
+      color: white;
+      border-radius: 20px 20px 4px 20px;
+      text-align: left; // El texto dentro se lee de izquierda a derecha
+    }
+  }
+
+  .mensaje-bot {
+    display: flex;
+    justify-content: flex-start; // Empuja la burbuja a la izquierda
+    width: 100%;
+
+    .burbuja {
+      background-color: white;
+      color: #333;
+      border-radius: 20px 20px 20px 4px;
+      border: 1px solid #e0e6ed; // Un borde sutil para que resalte del fondo premium
+    }
+  }
+
+  // Estilo para las fotos dentro del chat
+  .chat-img {
+    width: 100%;
+    max-width: 250px; // Evita que la foto sea gigantesca
+    border-radius: 12px;
+    margin-bottom: 8px;
+    display: block;
+    object-fit: cover;
+  }
+
+  /* --- ESTILOS PARA DOCTORES Y PAUTAS (NUEVO) --- */
+
+  .pautas-list {
+    margin: 12px 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      font-size: 0.85rem;
+      color: #444;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba($color-azul-claro, 0.1);
+      padding: 6px 10px;
+      border-radius: 8px;
+      border-left: 3px solid $color-azul-claro;
+    }
+  }
+
+  .doctor-card {
+    background: #fdfdfd;
+    border: 1px solid #e0e7ff;
+    border-radius: 18px;
+    padding: 14px;
+    margin-top: 12px;
+    box-shadow: 0 4px 12px rgba(46, 74, 112, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .doctor-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      ion-icon {
+        font-size: 42px;
+        color: $color-azul-oscuro;
+      }
+
+      .doctor-text {
+        display: flex;
+        flex-direction: column;
+
+        b {
+          color: $color-azul-oscuro;
+          font-size: 0.95rem;
+          line-height: 1.2;
+        }
+
+        span {
+          color: $color-azul-claro;
+          font-size: 0.8rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+      }
+    }
+
+    .btn-agendar {
+      --border-radius: 10px;
+      --box-shadow: none;
+      margin: 0;
+      font-size: 0.75rem;
+      height: 36px;
+      font-weight: 600;
+    }
+  }
+
+  // Badge de grado (Opcional por si quieres resaltar el nivel de quemadura)
+  .badge-grado {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+
+    &.grado-1 {
+      background: #fff4e5;
+      color: #ff9800;
+    }
+
+    &.grado-2 {
+      background: #ffebee;
+      color: #f44336;
+    }
+
+    &.grado-3 {
+      background: #212121;
+      color: #ffffff;
+    }
+  }
 }
 
-// 4. FOOTER
+// Estilos del pie de página (Input y Cursor)
 ion-footer ion-toolbar {
   --background: #{$color-bg-premium};
-  padding: 10px;
+  padding: 8px 10px;
+
   ion-item {
-    --background: #{$color-pure-white};
+    --background: white;
     --border-radius: 30px;
-    --padding-start: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    ion-input { color: #333; font-weight: 500; }
-    ion-icon { color: $color-dark-blue; font-size: 26px; }
+    --padding-start: 15px;
+    --inner-padding-end: 10px;
+    --border-style: none;
+
+    ion-input {
+      --color: black !important;
+      --caret-color: #{$color-azul-oscuro} !important;
+      font-size: 15px;
+    }
   }
 }
