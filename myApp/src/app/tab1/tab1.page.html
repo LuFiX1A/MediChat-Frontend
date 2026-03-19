@@ -1,47 +1,102 @@
-<ion-header lines="none">
-  <ion-toolbar color="primary">
-    <ion-title>Mi Perfil</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content #containerContent [scrollEvents]="true">
+  <div class="welcome-container">
+    <div class="welcome-card">
+      <div class="card-actions">
+        <ion-button fill="clear" (click)="mostrarInfoLegal()" color="medium">
+          <ion-icon slot="icon-only" name="information-circle-outline"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" (click)="confirmarLimpieza()" color="danger">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-button>
+      </div>
 
-<ion-content>
-  <div class="profile-header">
-    <div class="avatar-container">
-      <ion-icon name="person-circle-outline"></ion-icon>
+      <div class="icon-circle">
+        <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+      </div>
+
+      <h2>¡Hola! Soy MediChat</h2>
+      <p class="subtitle">Asistente avanzado de triaje y salud dérmica</p>
+
+      <div class="capabilities-text">
+        <div class="capability-item">
+          <span class="icon">🩺</span>
+          <div class="text">
+            <b>Triaje Médico:</b> Evalúo tus síntomas para ofrecerte una orientación preliminar de doctores.
+          </div>
+        </div>
+
+        <div class="capability-item">
+          <span class="icon">📸</span>
+          <div class="text">
+            <b>Análisis de Quemaduras:</b> Escaneo imágenes para identificar lesiones de Grado 1, 2 y 3.
+          </div>
+        </div>
+
+        <div class="capability-item">
+          <span class="icon">🛡️</span>
+          <div class="text">
+            <b>Detección Preventiva:</b> Filtro avanzado para el análisis de contexto situacional.
+          </div>
+        </div>
+      </div>
+
+      <p class="footer-note">Escribe tus síntomas o envía una foto para comenzar.</p>
     </div>
-    <h3>Usuario MediChat</h3>
-    <p>Versión 1.0.4 Beta</p>
   </div>
 
-  <ion-list lines="inset" class="info-list">
-    <ion-list-header>
-      <ion-label>SEGURIDAD Y LEGAL</ion-label>
-    </ion-list-header>
+  <div class="chat-container">
+    <div *ngFor="let m of mensajes" [class]="m.rol === 'usuario' ? 'mensaje-usuario' : 'mensaje-bot'">
+      <div class="burbuja">
 
-    <ion-item>
-      <ion-icon name="shield-checkmark-outline" slot="start" color="success"></ion-icon>
-      <ion-label>
-        <h2>Protección de Datos</h2>
-        <p>Tus fotos se procesan de forma anónima.</p>
-      </ion-label>
-    </ion-item>
+        <img *ngIf="m.imagen" [src]="m.imagen" class="chat-img" />
 
-    <ion-item class="disclaimer-item">
-      <ion-icon name="alert-circle-outline" slot="start" color="warning"></ion-icon>
-      <ion-label class="ion-text-wrap">
-        <h2>Aviso Legal Importante</h2>
-        <p>
-          Esta aplicación utiliza IA para orientación preliminar. 
-          <b>No es un diagnóstico médico oficial.</b> En caso de emergencia, contacte al 911 o acuda a un hospital.
-        </p>
-      </ion-label>
-    </ion-item>
-  </ion-list>
+        <div *ngIf="m.grado" [class]="'badge-grado grado-' + m.grado">
+          Quemadura Grado {{ m.grado }}
+        </div>
 
-  <div class="ion-padding">
-    <ion-button expand="block" fill="outline" color="danger" (click)="confirmarLimpieza()">
-      <ion-icon name="trash-outline" slot="start"></ion-icon>
-      Limpiar todos los datos
-    </ion-button>
+        <div class="chat-text">{{ m.texto }}</div>
+
+        <ul *ngIf="m.pautas?.length > 0" class="pautas-list">
+          <li *ngFor="let pauta of m.pautas">
+            <ion-icon name="medkit-outline"></ion-icon>
+            {{ pauta }}
+          </li>
+        </ul>
+
+        <div *ngFor="let doc of m.recomendaciones" class="doctor-card">
+          <div class="doctor-info">
+            <ion-icon name="person-circle-outline"></ion-icon>
+            <div class="doctor-text">
+              <b>{{ doc.nombre_doctor }}</b>
+              <span>{{ doc.especialidad }}</span>
+            </div>
+          </div>
+          <ion-button size="small" fill="outline" class="btn-agendar" color="primary">
+            AGENDAR CITA
+          </ion-button>
+        </div>
+
+      </div>
+    </div>
+
+    <div *ngIf="cargando" class="mensaje-bot">
+      <div class="burbuja">Analizando...⏳</div>
+    </div>
   </div>
 </ion-content>
+
+<ion-footer>
+  <input #fileInput type="file" (change)="onFileSelected($event)" accept="image/*" style="display: none">
+  <ion-toolbar>
+    <ion-item lines="none">
+      <ion-button slot="start" fill="clear" (click)="botonAbrirCamara()" [disabled]="cargando">
+        <ion-icon slot="icon-only" name="camera-outline"></ion-icon>
+      </ion-button>
+      <ion-input [(ngModel)]="mensajeUsuario" placeholder="Describe tus síntomas..."
+        (keyup.enter)="enviarSoloTexto()"></ion-input>
+      <ion-button slot="end" fill="clear" (click)="enviarSoloTexto()" [disabled]="!mensajeUsuario.trim() || cargando">
+        <ion-icon slot="icon-only" name="send"></ion-icon>
+      </ion-button>
+    </ion-item>
+  </ion-toolbar>
+</ion-footer>

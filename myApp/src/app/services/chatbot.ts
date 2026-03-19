@@ -1,35 +1,73 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { firstValueFrom } from 'rxjs'; // Recomendado para Angular moderno
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatbotService {
-  // Si usas celular real, cambia localhost por la IP de tu red
-  private apiUrl = 'http://localhost:8000/analyze-burn';
+  // 🚩 RECUERDA: Cambia esto por tu URL de Render cuando desplegues
+  private apiUrl = 'http://localhost:8000/analyze-full';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
-  async enviarConFoto(texto: string) {
-    // 1. Abrir la cámara
-    const image = await Camera.getPhoto({
-      quality: 90,
-      allowEditing: false,
-      resultType: CameraResultType.Uri,
-      source: CameraSource.Prompt // Pregunta si usar cámara o galería
-    });
+  /**
+   * Abre la cámara o galería, procesa la imagen y la envía 
+   * junto con el texto al "Cerebro Total" del backend.
+   */
+  // services/chatbot.ts
 
-    // 2. Convertir la imagen para el envío
-    const response = await fetch(image.webPath!);
-    const blob = await response.blob();
+  async enviarConFoto(texto: string, archivo?: File) { // <--- Agregamos 'archivo?'
+    try {
+      let blob: Blob;
+      let webPath: string | undefined;
 
-    // 3. Crear el paquete (FormData)
+      if (archivo) {
+        // CASO A: Viene del selector de archivos (PC/Web)
+        blob = archivo;
+        webPath = URL.createObjectURL(archivo);
+      } else {
+        // CASO B: Viene de la Cámara Nativa (Capacitor)
+        const image = await Camera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.Uri,
+          source: CameraSource.Prompt
+        });
+
+        const response = await fetch(image.webPath!);
+        blob = await response.blob();
+        webPath = image.webPath;
+      }
+
+      // 3. Crear el paquete FormData
+      const formData = new FormData();
+      formData.append('file', blob, `analisis_${Date.now()}.jpg`);
+      formData.append('user_text', texto || "Análisis de imagen");
+
+      // 4. Enviar al Backend
+      const result = await firstValueFrom(this.http.post(this.apiUrl, formData));
+
+      return {
+        ...result,
+        fotoUrlLocal: webPath
+      };
+
+    } catch (error) {
+      console.error("Error en el servicio de Chatbot:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Envía solo texto (sin imagen) al mismo endpoint inteligente.
+   */
+  async enviarSoloTexto(texto: string) {
     const formData = new FormData();
-    formData.append('file', blob, 'burn_image.jpg');
     formData.append('user_text', texto);
 
-    // 4. Enviar al Backend
-    return this.http.post(this.apiUrl, formData).toPromise();
+    // Al no agregar 'file', FastAPI lo recibirá como None
+    return firstValueFrom(this.http.post(this.apiUrl, formData));
   }
 }

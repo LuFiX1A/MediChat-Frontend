@@ -35,3 +35,44 @@
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import '@ionic/angular/css/palettes/dark.system.css';
+
+.alerta-premium {
+    --background: #ffffff !important; // Fuerza el fondo blanco
+
+    .alert-wrapper {
+        background: #ffffff !important;
+        border-radius: 20px !important;
+        box-shadow: 0 15px 35px rgba(46, 74, 112, 0.15) !important;
+    }
+
+    .alert-head {
+        padding-bottom: 10px;
+
+        .alert-title {
+            color: #2e4a70 !important; // $color-azul-oscuro
+            font-weight: 800 !important;
+            font-size: 1.4rem;
+        }
+
+        .alert-sub-title {
+            color: #73c7e3 !important; // $color-azul-claro
+            font-weight: 600;
+        }
+    }
+
+    .alert-message {
+        color: #444444 !important;
+        font-size: 0.95rem !important;
+        line-height: 1.4;
+    }
+
+    .alert-button-group {
+        padding: 10px;
+
+        .alert-button {
+            color: #2e4a70 !important;
+            font-weight: bold !important;
+            text-transform: uppercase;
+        }
+    }
+}

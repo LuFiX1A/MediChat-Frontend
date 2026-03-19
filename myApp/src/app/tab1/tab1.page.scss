@@ -6,47 +6,269 @@ ion-content {
   --background: #{$color-bg-premium};
 
   .welcome-container {
-    padding: 25px; padding-top: 50px;
+    padding: 25px;
+    padding-top: 50px;
+    // Agregamos un margen inferior para que no choque con el inicio del chat
+    margin-bottom: 10px;
+
     .welcome-card {
-      background: white; border-radius: 24px; padding: 35px 20px; text-align: center;
-      box-shadow: 0 10px 30px rgba(46, 74, 112, 0.05);
-      .icon-circle {
-        width: 70px; height: 70px; margin: 0 auto 20px; border-radius: 50%;
-        background: linear-gradient(135deg, $color-azul-claro 0%, $color-azul-oscuro 100%);
-        display: flex; justify-content: center; align-items: center; color: white; font-size: 35px;
+      background: white;
+      border-radius: 28px;
+      padding: 30px 20px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(46, 74, 112, 0.08);
+      position: relative;
+      overflow: hidden;
+
+      .card-actions {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 5px;
+        z-index: 10;
       }
-      h2 { color: $color-azul-oscuro; font-weight: 800; }
+
+      .icon-circle {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, $color-azul-claro 0%, $color-azul-oscuro 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 35px;
+      }
+
+      h2 {
+        color: $color-azul-oscuro;
+        font-weight: 800;
+        margin-bottom: 5px;
+      }
+
+      .subtitle {
+        color: #666;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 25px;
+        display: block;
+      }
+
+      .capabilities-text {
+        text-align: left;
+        background: #f9fbfd;
+        border-radius: 20px;
+        padding: 18px;
+        border: 1px solid #f0f4f8;
+        margin-top: 20px;
+
+        .capability-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 16px;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          .icon {
+            font-size: 1.3rem;
+            line-height: 1;
+          }
+
+          .text {
+            font-size: 0.88rem;
+            line-height: 1.4;
+            color: #444 !important;
+
+            b {
+              color: $color-azul-oscuro;
+              display: block;
+              margin-bottom: 2px;
+            }
+          }
+        }
+      }
     }
   }
 
-  .chat-container { padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+  // Estilos del Chat (Burbujas mejoradas)
+  .chat-container {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; // Un poco más de espacio entre mensajes
+    padding-bottom: 60px;
+  }
 
   .burbuja {
-    padding: 12px 16px; max-width: 85%; font-size: 15px;
-    white-space: pre-wrap; // CRÍTICO: Mantiene saltos de línea y formato
-    line-height: 1.4;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    padding: 12px 18px;
+    max-width: 80%; // Bajamos un poco para dejar aire en los bordes
+    font-size: 15px;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+
+    // SOLUCIÓN CLAVE: Permite que la burbuja crezca horizontalmente 
+    // antes de saltar de línea y mantiene el texto legible.
+    width: fit-content;
+    word-wrap: break-word;
+    white-space: pre-wrap; // Respeta saltos de línea del backend
   }
 
   .mensaje-usuario {
-    align-self: flex-end;
-    .burbuja { background-color: $color-azul-oscuro; color: white; border-radius: 18px 18px 4px 18px; }
+    display: flex;
+    justify-content: flex-end; // Empuja la burbuja a la derecha
+    width: 100%;
+
+    .burbuja {
+      background-color: $color-azul-oscuro;
+      color: white;
+      border-radius: 20px 20px 4px 20px;
+      text-align: left; // El texto dentro se lee de izquierda a derecha
+    }
   }
 
   .mensaje-bot {
-    align-self: flex-start;
-    .burbuja { background-color: white; color: #333; border-radius: 18px 18px 18px 4px; }
+    display: flex;
+    justify-content: flex-start; // Empuja la burbuja a la izquierda
+    width: 100%;
+
+    .burbuja {
+      background-color: white;
+      color: #333;
+      border-radius: 20px 20px 20px 4px;
+      border: 1px solid #e0e6ed; // Un borde sutil para que resalte del fondo premium
+    }
   }
 
-  .chat-img { width: 100%; border-radius: 14px; margin-bottom: 8px; display: block; }
+  // Estilo para las fotos dentro del chat
+  .chat-img {
+    width: 100%;
+    max-width: 250px; // Evita que la foto sea gigantesca
+    border-radius: 12px;
+    margin-bottom: 8px;
+    display: block;
+    object-fit: cover;
+  }
 
-  .medical-alert {
-    border-radius: 16px; margin: 10px 0;
-    ion-card-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  /* --- ESTILOS PARA DOCTORES Y PAUTAS (NUEVO) --- */
+
+  .pautas-list {
+    margin: 12px 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      font-size: 0.85rem;
+      color: #444;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba($color-azul-claro, 0.1);
+      padding: 6px 10px;
+      border-radius: 8px;
+      border-left: 3px solid $color-azul-claro;
+    }
+  }
+
+  .doctor-card {
+    background: #fdfdfd;
+    border: 1px solid #e0e7ff;
+    border-radius: 18px;
+    padding: 14px;
+    margin-top: 12px;
+    box-shadow: 0 4px 12px rgba(46, 74, 112, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .doctor-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      ion-icon {
+        font-size: 42px;
+        color: $color-azul-oscuro;
+      }
+
+      .doctor-text {
+        display: flex;
+        flex-direction: column;
+
+        b {
+          color: $color-azul-oscuro;
+          font-size: 0.95rem;
+          line-height: 1.2;
+        }
+
+        span {
+          color: $color-azul-claro;
+          font-size: 0.8rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+      }
+    }
+
+    .btn-agendar {
+      --border-radius: 10px;
+      --box-shadow: none;
+      margin: 0;
+      font-size: 0.75rem;
+      height: 36px;
+      font-weight: 600;
+    }
+  }
+
+  // Badge de grado (Opcional por si quieres resaltar el nivel de quemadura)
+  .badge-grado {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+
+    &.grado-1 {
+      background: #fff4e5;
+      color: #ff9800;
+    }
+
+    &.grado-2 {
+      background: #ffebee;
+      color: #f44336;
+    }
+
+    &.grado-3 {
+      background: #212121;
+      color: #ffffff;
+    }
   }
 }
 
+// Estilos del pie de página (Input y Cursor)
 ion-footer ion-toolbar {
-  --background: #{$color-bg-premium}; padding: 10px;
-  ion-item { --background: white; --border-radius: 30px; ion-input { --color: black !important; } }
+  --background: #{$color-bg-premium};
+  padding: 8px 10px;
+
+  ion-item {
+    --background: white;
+    --border-radius: 30px;
+    --padding-start: 15px;
+    --inner-padding-end: 10px;
+    --border-style: none;
+
+    ion-input {
+      --color: black !important;
+      --caret-color: #{$color-azul-oscuro} !important;
+      font-size: 15px;
+    }
+  }
 }
