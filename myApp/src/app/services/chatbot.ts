@@ -8,7 +8,7 @@ import { firstValueFrom } from 'rxjs'; // Recomendado para Angular moderno
 })
 export class ChatbotService {
   // 🚩 RECUERDA: Cambia esto por tu URL de Render cuando desplegues
-  private apiUrl = 'http://localhost:8000/analyze-full';
+  private apiUrl = 'https://pseudosiphonal-shanel-nonwoven.ngrok-free.dev/analyze-full';
 
   constructor(private http: HttpClient) { }
 

@@ -9,37 +9,27 @@
           <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
         </ion-button>
       </div>
-
       <div class="icon-circle">
         <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
       </div>
-
       <h2>¡Hola! Soy MediChat</h2>
       <p class="subtitle">Asistente avanzado de triaje y salud dérmica</p>
-
       <div class="capabilities-text">
         <div class="capability-item">
           <span class="icon">🩺</span>
-          <div class="text">
-            <b>Triaje Médico:</b> Evalúo tus síntomas para ofrecerte una orientación preliminar de doctores.
-          </div>
+          <div class="text"><b>Triaje Médico:</b> Evalúo tus síntomas para ofrecerte una orientación preliminar de
+            doctores.</div>
         </div>
-
         <div class="capability-item">
           <span class="icon">📸</span>
-          <div class="text">
-            <b>Análisis de Quemaduras:</b> Escaneo imágenes para identificar lesiones de Grado 1, 2 y 3.
+          <div class="text"><b>Análisis de Quemaduras:</b> Escaneo imágenes para identificar lesiones de Grado 1, 2 y 3.
           </div>
         </div>
-
         <div class="capability-item">
           <span class="icon">🛡️</span>
-          <div class="text">
-            <b>Detección Preventiva:</b> Filtro avanzado para el análisis de contexto situacional.
-          </div>
+          <div class="text"><b>Detección Preventiva:</b> Filtro avanzado para el análisis de contexto situacional.</div>
         </div>
       </div>
-
       <p class="footer-note">Escribe tus síntomas o envía una foto para comenzar.</p>
     </div>
   </div>
@@ -47,20 +37,12 @@
   <div class="chat-container">
     <div *ngFor="let m of mensajes" [class]="m.rol === 'usuario' ? 'mensaje-usuario' : 'mensaje-bot'">
       <div class="burbuja">
-
         <img *ngIf="m.imagen" [src]="m.imagen" class="chat-img" />
-
-        <div *ngIf="m.grado" [class]="'badge-grado grado-' + m.grado">
-          Quemadura Grado {{ m.grado }}
-        </div>
-
+        <div *ngIf="m.grado" [class]="'badge-grado grado-' + m.grado">Quemadura Grado {{ m.grado }}</div>
         <div class="chat-text">{{ m.texto }}</div>
 
         <ul *ngIf="m.pautas?.length > 0" class="pautas-list">
-          <li *ngFor="let pauta of m.pautas">
-            <ion-icon name="medkit-outline"></ion-icon>
-            {{ pauta }}
-          </li>
+          <li *ngFor="let pauta of m.pautas"><ion-icon name="medkit-outline"></ion-icon> {{ pauta }}</li>
         </ul>
 
         <div *ngFor="let doc of m.recomendaciones" class="doctor-card">
@@ -71,30 +53,39 @@
               <span>{{ doc.especialidad }}</span>
             </div>
           </div>
-          <ion-button size="small" fill="outline" class="btn-agendar" color="primary">
-            AGENDAR CITA
-          </ion-button>
+          <ion-button size="small" fill="outline" class="btn-agendar" color="primary">AGENDAR CITA</ion-button>
         </div>
-
       </div>
     </div>
-
     <div *ngIf="cargando" class="mensaje-bot">
-      <div class="burbuja">Analizando...⏳</div>
+      <div class="burbuja">Analizando con IA... ⏳</div>
     </div>
   </div>
 </ion-content>
 
 <ion-footer>
+  <div class="image-preview-bar" *ngIf="previewUrl"
+    style="background: #fff; padding: 10px; display: flex; align-items: center; border-top: 1px solid #eee;">
+    <div style="position: relative; width: 60px; height: 60px;">
+      <img [src]="previewUrl"
+        style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 2px solid #73c7e3;" />
+      <ion-button (click)="cancelarImagen()" color="danger" fill="clear"
+        style="position: absolute; top: -12px; right: -12px; --padding-start: 0; --padding-end: 0;">
+        <ion-icon name="close-circle" style="font-size: 24px;"></ion-icon>
+      </ion-button>
+    </div>
+  </div>
+
   <input #fileInput type="file" (change)="onFileSelected($event)" accept="image/*" style="display: none">
   <ion-toolbar>
     <ion-item lines="none">
       <ion-button slot="start" fill="clear" (click)="botonAbrirCamara()" [disabled]="cargando">
         <ion-icon slot="icon-only" name="camera-outline"></ion-icon>
       </ion-button>
-      <ion-input [(ngModel)]="mensajeUsuario" placeholder="Describe tus síntomas..."
-        (keyup.enter)="enviarSoloTexto()"></ion-input>
-      <ion-button slot="end" fill="clear" (click)="enviarSoloTexto()" [disabled]="!mensajeUsuario.trim() || cargando">
+      <ion-input [(ngModel)]="mensajeUsuario" placeholder="Escribe tus síntomas..." style="--color: #2e4a70;"
+        (keyup.enter)="enviarTodo()"></ion-input>
+      <ion-button slot="end" fill="clear" (click)="enviarTodo()"
+        [disabled]="(!mensajeUsuario.trim() && !selectedFile) || cargando">
         <ion-icon slot="icon-only" name="send"></ion-icon>
       </ion-button>
     </ion-item>
