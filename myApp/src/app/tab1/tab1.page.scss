@@ -8,7 +8,6 @@ ion-content {
   .welcome-container {
     padding: 25px;
     padding-top: 50px;
-    // Agregamos un margen inferior para que no choque con el inicio del chat
     margin-bottom: 10px;
 
     .welcome-card {
@@ -95,66 +94,59 @@ ion-content {
     }
   }
 
-  // Estilos del Chat (Burbujas mejoradas)
   .chat-container {
     padding: 15px;
     display: flex;
     flex-direction: column;
-    gap: 15px; // Un poco más de espacio entre mensajes
+    gap: 15px;
     padding-bottom: 60px;
   }
 
   .burbuja {
     padding: 12px 18px;
-    max-width: 80%; // Bajamos un poco para dejar aire en los bordes
+    max-width: 80%;
     font-size: 15px;
     line-height: 1.5;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-
-    // SOLUCIÓN CLAVE: Permite que la burbuja crezca horizontalmente 
-    // antes de saltar de línea y mantiene el texto legible.
     width: fit-content;
     word-wrap: break-word;
-    white-space: pre-wrap; // Respeta saltos de línea del backend
+    white-space: pre-wrap;
   }
 
   .mensaje-usuario {
     display: flex;
-    justify-content: flex-end; // Empuja la burbuja a la derecha
+    justify-content: flex-end;
     width: 100%;
 
     .burbuja {
       background-color: $color-azul-oscuro;
       color: white;
       border-radius: 20px 20px 4px 20px;
-      text-align: left; // El texto dentro se lee de izquierda a derecha
+      text-align: left;
     }
   }
 
   .mensaje-bot {
     display: flex;
-    justify-content: flex-start; // Empuja la burbuja a la izquierda
+    justify-content: flex-start;
     width: 100%;
 
     .burbuja {
       background-color: white;
       color: #333;
       border-radius: 20px 20px 20px 4px;
-      border: 1px solid #e0e6ed; // Un borde sutil para que resalte del fondo premium
+      border: 1px solid #e0e6ed;
     }
   }
 
-  // Estilo para las fotos dentro del chat
   .chat-img {
     width: 100%;
-    max-width: 250px; // Evita que la foto sea gigantesca
+    max-width: 250px;
     border-radius: 12px;
     margin-bottom: 8px;
     display: block;
     object-fit: cover;
   }
-
-  /* --- ESTILOS PARA DOCTORES Y PAUTAS (NUEVO) --- */
 
   .pautas-list {
     margin: 12px 0;
@@ -226,7 +218,6 @@ ion-content {
     }
   }
 
-  // Badge de grado (Opcional por si quieres resaltar el nivel de quemadura)
   .badge-grado {
     display: inline-block;
     padding: 4px 12px;
@@ -253,7 +244,84 @@ ion-content {
   }
 }
 
-// Estilos del pie de página (Input y Cursor)
+// ESTILOS DE LA BARRA DE PREVISUALIZACIÓN
+.image-preview-bar {
+  // 1. ELIMINAMOS el 'background: black' y el ancho del 100%
+  background: transparent; // Ya no más barra negra
+  padding: 10px;
+  display: flex;
+  justify-content: flex-start; // Alineado a la izquierda
+
+  // 2. HACEMOS que el contenedor flote sobre el chat y no ocupe espacio extra
+  position: absolute;
+  bottom: 100%; // Se posiciona justo ARRIBA del toolbar de escribir
+  left: 10px;
+  z-index: 10; // Para que esté por encima de los mensajes si hacen scroll
+
+  // 3. ANIMACIÓN suave para cuando aparece
+  animation: slideUpPreview 0.3s ease-out;
+
+  .preview-item {
+    position: relative;
+
+    // 4. IMAGEN MÁS GRANDE (Cambiado de 60px a 120px)
+    width: 120px;
+    height: 120px;
+
+    // 5. ESTILOS DE LA IMAGEN (Con sombra para que resalte)
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover; // Para que no se deforme
+      border-radius: 12px; // Bordes redondeados
+      border: 3px solid white; // Marco blanco elegante
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); // Sombra para dar profundidad
+    }
+
+    // 6. BOTÓN DE ELIMINAR (Más estético)
+    ion-button {
+      position: absolute;
+      top: -10px; // Un poco por fuera de la imagen
+      right: -10px;
+      --padding-start: 0;
+      --padding-end: 0;
+      width: 30px;
+      height: 30px;
+      margin: 0;
+      --border-radius: 50%;
+      --background: #ff4961; // Color rojo brillante
+      --color: white;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+
+      ion-icon {
+        font-size: 18px;
+      }
+    }
+  }
+}
+
+// Asegurar que el footer sea relativo para el posicionamiento absoluto
+ion-footer {
+  position: relative;
+  background: white; // Tu fondo original
+  // ... resto de estilos del footer
+}
+
+// Animación keyframes
+@keyframes slideUpPreview {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+// CORRECCIÓN PARA EL COLOR DEL TEXTO EN EL INPUT
 ion-footer ion-toolbar {
   --background: #{$color-bg-premium};
   padding: 8px 10px;
@@ -261,14 +329,14 @@ ion-footer ion-toolbar {
   ion-item {
     --background: white;
     --border-radius: 30px;
-    --padding-start: 15px;
-    --inner-padding-end: 10px;
     --border-style: none;
+    --padding-start: 15px;
 
     ion-input {
-      --color: black !important;
-      --caret-color: #{$color-azul-oscuro} !important;
+      --color: #{$color-azul-oscuro} !important; // Texto ahora visible en azul oscuro
+      --placeholder-color: #666;
       font-size: 15px;
+      font-weight: 500;
     }
   }
 }
