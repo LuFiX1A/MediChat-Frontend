@@ -1,0 +1,280 @@
+<div class="login-shell">
+  <section class="login-brand">
+    <div class="brand-top">
+      <div class="brand-mark">
+        <ion-icon name="pulse-outline"></ion-icon>
+      </div>
+      <div class="brand-name">
+        <b>HealthText</b>
+        <span>Cloud &amp; Smart Record</span>
+      </div>
+    </div>
+
+    <div class="brand-copy">
+      <span class="eyebrow">Expediente Médico Electrónico</span>
+      <h1>El historial clínico del futuro, <em>en la nube.</em></h1>
+      <p>
+        Unifica pacientes, consultas, notas clínicas y citas en una plataforma
+        segura, trazable y disponible en la nube.
+      </p>
+    </div>
+
+    <div class="brand-footer">
+      <span>HealthText · Cloud &amp; Smart Record</span>
+      <span>Datos protegidos · Ley 1581 de 2012</span>
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <div class="login-card">
+      <div class="mobile-brand">
+        <div class="brand-mark"><ion-icon name="pulse-outline"></ion-icon></div>
+        <b>HealthText</b>
+      </div>
+
+      <div class="auth-switch" role="tablist" aria-label="Acceso o registro de cuenta">
+        <button
+          type="button"
+          class="auth-tab"
+          role="tab"
+          [class.active]="mode === 'login'"
+          [attr.aria-selected]="mode === 'login'"
+          (click)="showLogin()"
+        >
+          <ion-icon name="log-in-outline"></ion-icon>
+          <span>Iniciar sesión</span>
+        </button>
+        <button
+          type="button"
+          class="auth-tab"
+          role="tab"
+          [class.active]="mode === 'register'"
+          [attr.aria-selected]="mode === 'register'"
+          (click)="showRegister()"
+        >
+          <ion-icon name="person-outline"></ion-icon>
+          <span>Registrarme</span>
+        </button>
+      </div>
+
+      <ng-container *ngIf="mode === 'login'; else registerTpl">
+        <div class="login-head">
+          <span class="eyebrow">Portal clínico</span>
+          <h2>Bienvenido de nuevo</h2>
+          <p>Ingresa con tu cuenta institucional para acceder al expediente médico electrónico.</p>
+        </div>
+
+        <div class="success-box" *ngIf="success">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          <span>{{ success }}</span>
+        </div>
+
+        <form (ngSubmit)="submit()" novalidate>
+          <div class="ht-field">
+            <label for="email">Correo institucional</label>
+            <div class="ht-input-wrap">
+              <ion-icon name="mail-outline"></ion-icon>
+              <input
+                id="email"
+                class="ht-input"
+                type="email"
+                name="email"
+                [(ngModel)]="email"
+                placeholder="nombre@healthtext.com"
+                autocomplete="username"
+              />
+            </div>
+          </div>
+
+          <div class="ht-field">
+            <label for="password">Contraseña</label>
+            <div class="ht-input-wrap">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              <input
+                id="password"
+                class="ht-input password-input"
+                [type]="showPassword ? 'text' : 'password'"
+                name="password"
+                [(ngModel)]="password"
+                placeholder="Ingresa tu contraseña"
+                autocomplete="current-password"
+              />
+              <button class="toggle-password" type="button" (click)="togglePassword()" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="login-options">
+            <label class="remember">
+              <input type="checkbox" name="remember" [(ngModel)]="remember" />
+              <span>Recordarme</span>
+            </label>
+            <button type="button" class="forgot">¿Olvidaste tu contraseña?</button>
+          </div>
+
+          <div class="error-box" *ngIf="error">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span>{{ error }}</span>
+          </div>
+
+          <button class="ht-btn ht-btn-primary login-submit" type="submit" [disabled]="loading">
+            <ion-icon *ngIf="!loading" name="log-in-outline"></ion-icon>
+            <span *ngIf="!loading">Iniciar sesión segura</span>
+            <span *ngIf="loading">Verificando credenciales...</span>
+          </button>
+        </form>
+
+        <div class="auth-footnote">
+          <span>¿No tienes cuenta?</span>
+          <button type="button" class="link-btn" (click)="showRegister()">Crea tu cuenta aquí</button>
+        </div>
+
+        <div class="demo-box">
+          <div class="demo-title">
+            <ion-icon name="key-outline"></ion-icon>
+            <span>Acceso de demostración</span>
+          </div>
+          <div class="demo-buttons">
+            <button class="demo-btn" type="button" (click)="useDemo('doctor')">
+              <ion-icon name="medical-outline"></ion-icon>
+              <div>
+                <b>Médica</b>
+                <span>doctor@healthtext.com</span>
+              </div>
+            </button>
+            <button class="demo-btn" type="button" (click)="useDemo('admin')">
+              <ion-icon name="shield-half-outline"></ion-icon>
+              <div>
+                <b>Administrador</b>
+                <span>admin@healthtext.com</span>
+              </div>
+            </button>
+          </div>
+          <p class="demo-hint">Contraseña para ambas cuentas: <b>demo1234</b></p>
+        </div>
+
+        <div class="secure-note">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <span>Autenticación protegida · Sesión cifrada TLS 1.3</span>
+        </div>
+      </ng-container>
+
+      <ng-template #registerTpl>
+        <div class="login-head">
+          <span class="eyebrow">Registro institucional</span>
+          <h2>Crea tu cuenta</h2>
+          <p>Registra tu acceso como personal clínico. Las cuentas de administrador solo las crea el área de sistemas.</p>
+        </div>
+
+        <form (ngSubmit)="submitRegister()" novalidate>
+          <div class="ht-field">
+            <label for="register-name">Nombre completo</label>
+            <div class="ht-input-wrap">
+              <ion-icon name="person-outline"></ion-icon>
+              <input
+                id="register-name"
+                class="ht-input"
+                type="text"
+                name="registerName"
+                [(ngModel)]="registerName"
+                placeholder="Ej. Dra. Camila Restrepo"
+                autocomplete="name"
+              />
+            </div>
+          </div>
+
+          <div class="ht-field">
+            <label for="register-email">Correo institucional</label>
+            <div class="ht-input-wrap">
+              <ion-icon name="mail-outline"></ion-icon>
+              <input
+                id="register-email"
+                class="ht-input"
+                type="email"
+                name="registerEmail"
+                [(ngModel)]="registerEmail"
+                placeholder="nombre@healthtext.com"
+                autocomplete="email"
+              />
+            </div>
+          </div>
+
+          <div class="ht-field">
+            <label for="register-role">Rol clínico</label>
+            <div class="ht-input-wrap">
+              <ion-icon name="people-outline"></ion-icon>
+              <select
+                id="register-role"
+                class="ht-select"
+                name="registerRole"
+                [(ngModel)]="registerRole"
+              >
+                <option value="Médico">Médico</option>
+                <option value="Enfermería">Enfermería</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="register-grid">
+            <div class="ht-field">
+              <label for="register-password">Contraseña</label>
+              <div class="ht-input-wrap">
+                <ion-icon name="lock-closed-outline"></ion-icon>
+                <input
+                  id="register-password"
+                  class="ht-input password-input"
+                  [type]="showPassword ? 'text' : 'password'"
+                  name="registerPassword"
+                  [(ngModel)]="registerPassword"
+                  placeholder="Mínimo 8 caracteres"
+                  autocomplete="new-password"
+                />
+                <button class="toggle-password" type="button" (click)="togglePassword()" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                  <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                </button>
+              </div>
+            </div>
+
+            <div class="ht-field">
+              <label for="register-confirm">Confirmar contraseña</label>
+              <div class="ht-input-wrap">
+                <ion-icon name="lock-closed-outline"></ion-icon>
+                <input
+                  id="register-confirm"
+                  class="ht-input"
+                  [type]="showPassword ? 'text' : 'password'"
+                  name="registerConfirm"
+                  [(ngModel)]="registerConfirm"
+                  placeholder="Repite la contraseña"
+                  autocomplete="new-password"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="error-box" *ngIf="registerError">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span>{{ registerError }}</span>
+          </div>
+
+          <button class="ht-btn ht-btn-primary login-submit" type="submit" [disabled]="registerLoading">
+            <ion-icon *ngIf="!registerLoading" name="person-outline"></ion-icon>
+            <span *ngIf="!registerLoading">Crear cuenta</span>
+            <span *ngIf="registerLoading">Creando cuenta...</span>
+          </button>
+        </form>
+
+        <div class="auth-footnote">
+          <span>¿Ya tienes cuenta?</span>
+          <button type="button" class="link-btn" (click)="showLogin()">Inicia sesión</button>
+        </div>
+
+        <div class="secure-note">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <span>Registro didáctico local · La cuenta se guarda solo en este navegador</span>
+        </div>
+      </ng-template>
+    </div>
+  </section>
+</div>

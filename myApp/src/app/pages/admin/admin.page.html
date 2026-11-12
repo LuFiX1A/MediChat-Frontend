@@ -1,0 +1,651 @@
+<div class="ht-page admin-page">
+  <div class="ht-page-head">
+    <div>
+      <span class="ht-eyebrow"><ion-icon name="shield-checkmark-outline"></ion-icon> Gobierno clínico y seguridad</span>
+      <h2 class="ht-title">Administración y seguridad</h2>
+      <p class="ht-subtitle">
+        Gestiona usuarios, roles y privilegios, revisa los registros de auditoría y consulta
+        el plan de seguridad en 7 capas que protege la información clínica.
+      </p>
+    </div>
+    <div class="ht-actions">
+      <button class="ht-btn ht-btn-ghost" type="button" (click)="setTab('seguridad')">
+        <ion-icon name="layers-outline"></ion-icon>
+        Ver 7 capas
+      </button>
+      <button class="ht-btn ht-btn-primary" type="button" (click)="openUserModal()">
+        <ion-icon name="add-outline"></ion-icon>
+        Nuevo usuario
+      </button>
+    </div>
+  </div>
+
+  <div class="saved-banner" *ngIf="userSavedMessage">
+    <ion-icon name="checkmark-circle-outline"></ion-icon>
+    <span>{{ userSavedMessage }}</span>
+    <button type="button" class="banner-close" (click)="userSavedMessage = ''" aria-label="Cerrar">
+      <ion-icon name="close-outline"></ion-icon>
+    </button>
+  </div>
+
+  <section class="admin-tabs ht-card">
+    <div class="ht-tabs">
+      <button
+        class="ht-tab"
+        type="button"
+        *ngFor="let tab of tabs"
+        [class.active]="activeTab === tab.id"
+        (click)="setTab(tab.id)"
+      >
+        <ion-icon [name]="tab.icon"></ion-icon>
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <!-- USUARIOS -->
+    <div class="tab-panel" *ngIf="activeTab === 'usuarios'">
+      <div class="panel-head">
+        <div>
+          <h3>Gestión de usuarios</h3>
+          <p>Cuentas con acceso al expediente médico electrónico y su estado actual.</p>
+        </div>
+        <button class="ht-btn ht-btn-ghost ht-btn-sm" type="button" (click)="openUserModal()">
+          <ion-icon name="add-outline"></ion-icon>
+          Crear usuario
+        </button>
+      </div>
+
+      <div class="user-stats">
+        <div class="mini-stat">
+          <span class="mini-icon blue"><ion-icon name="people-outline"></ion-icon></span>
+          <div><b>{{ users.length }}</b><span>Usuarios registrados</span></div>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-icon green"><ion-icon name="checkmark-circle-outline"></ion-icon></span>
+          <div><b>{{ activeUsers }}</b><span>Cuentas activas</span></div>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-icon amber"><ion-icon name="key-outline"></ion-icon></span>
+          <div><b>{{ adminUsers }}</b><span>Administradores</span></div>
+        </div>
+      </div>
+
+      <div class="panel-toolbar">
+        <div class="ht-input-wrap panel-search">
+          <ion-icon name="search-outline"></ion-icon>
+          <input
+            class="ht-input"
+            [(ngModel)]="userSearch"
+            placeholder="Buscar por nombre o correo institucional..."
+          />
+        </div>
+        <select class="ht-select" [(ngModel)]="roleFilter" aria-label="Filtrar por rol">
+          <option value="Todos">Todos los roles</option>
+          <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+        </select>
+        <span class="results-count">{{ filteredUsers.length }} usuarios</span>
+      </div>
+
+      <div class="ht-table-wrap">
+        <table class="ht-table">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Correo institucional</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Último acceso</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of filteredUsers; trackBy: trackById">
+              <td>
+                <div class="ht-person">
+                  <div class="ht-avatar" [style.background]="user.color">{{ getInitials(user.name) }}</div>
+                  <div class="ht-person-text">
+                    <b>{{ user.name }}</b>
+                    <span>{{ user.id }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="soft-cell">{{ user.email }}</td>
+              <td><span class="ht-badge ht-badge--neutral">{{ user.role }}</span></td>
+              <td><span class="ht-badge" [ngClass]="badge(user.status)">{{ user.status }}</span></td>
+              <td class="soft-cell">{{ user.lastAccess }}</td>
+              <td>
+                <div class="row-actions">
+                  <button
+                    class="ht-btn ht-btn-sm"
+                    type="button"
+                    [ngClass]="user.status === 'Activo' ? 'ht-btn-danger' : 'ht-btn-success'"
+                    (click)="toggleUserStatus(user)"
+                  >
+                    <ion-icon [name]="user.status === 'Activo' ? 'lock-closed-outline' : 'checkmark-circle-outline'"></ion-icon>
+                    {{ user.status === 'Activo' ? 'Desactivar' : 'Activar' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ht-empty" *ngIf="filteredUsers.length === 0">
+        <ion-icon name="people-outline"></ion-icon>
+        No se encontraron usuarios con los filtros seleccionados.
+      </div>
+
+      <div class="panel-note">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <span>
+          Las cuentas se crean con el principio de mínimo privilegio. Toda alta, baja o cambio de rol
+          queda registrada en la auditoría del sistema.
+        </span>
+      </div>
+    </div>
+
+    <!-- ROLES Y PERMISOS -->
+    <div class="tab-panel" *ngIf="activeTab === 'roles'">
+      <div class="panel-head">
+        <div>
+          <h3>Roles y permisos</h3>
+          <p>Matriz de acceso por módulo. Ajusta los privilegios de cada rol del sistema.</p>
+        </div>
+        <button class="ht-btn ht-btn-primary ht-btn-sm" type="button" (click)="savePermissions()">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          Guardar cambios
+        </button>
+      </div>
+
+      <div class="role-selector">
+        <button
+          class="role-pill"
+          type="button"
+          *ngFor="let role of roles"
+          [class.active]="selectedRole === role"
+          (click)="selectedRole = role"
+        >
+          <ion-icon [name]="role === 'Administrador' ? 'shield-half-outline' : role === 'Auditor' ? 'clipboard-outline' : role === 'Enfermería' ? 'bandage-outline' : 'medical-outline'"></ion-icon>
+          {{ role }}
+        </button>
+        <span class="permission-count">{{ enabledPermissions }} privilegios activos</span>
+      </div>
+
+      <div class="matrix-wrap">
+        <table class="permission-table">
+          <thead>
+            <tr>
+              <th>Módulo del sistema</th>
+              <th>Ver</th>
+              <th>Crear</th>
+              <th>Editar</th>
+              <th>Eliminar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of currentPermissions">
+              <td class="module-cell">
+                <b>{{ row.module }}</b>
+                <span>
+                  {{ row.module === 'Administración y seguridad' ? 'Configuración, usuarios y auditoría' : 'Operación clínica del expediente' }}
+                </span>
+              </td>
+              <td>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="row.view" />
+                  <span class="switch-track"></span>
+                </label>
+              </td>
+              <td>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="row.create" />
+                  <span class="switch-track"></span>
+                </label>
+              </td>
+              <td>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="row.edit" />
+                  <span class="switch-track"></span>
+                </label>
+              </td>
+              <td>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="row.delete" />
+                  <span class="switch-track"></span>
+                </label>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="role-legend">
+        <div class="legend-item">
+          <span class="legend-icon medical"><ion-icon name="medical-outline"></ion-icon></span>
+          <p><b>Médico:</b> acceso clínico completo a pacientes, consultas y citas.</p>
+        </div>
+        <div class="legend-item">
+          <span class="legend-icon nurse"><ion-icon name="bandage-outline"></ion-icon></span>
+          <p><b>Enfermería:</b> lectura de expedientes y gestión de la agenda.</p>
+        </div>
+        <div class="legend-item">
+          <span class="legend-icon audit"><ion-icon name="clipboard-outline"></ion-icon></span>
+          <p><b>Auditor:</b> solo lectura, incluida la consulta de auditoría.</p>
+        </div>
+        <div class="legend-item">
+          <span class="legend-icon admin"><ion-icon name="shield-half-outline"></ion-icon></span>
+          <p><b>Administrador:</b> control total de usuarios, roles y configuración.</p>
+        </div>
+      </div>
+
+      <div class="panel-note">
+        <ion-icon name="warning-outline"></ion-icon>
+        <span>
+          Los cambios de permisos se aplican sobre el rol seleccionado. En producción deben requerir
+          doble aprobación y quedar versionados en el registro de auditoría.
+        </span>
+      </div>
+    </div>
+
+    <!-- AUDITORÍA -->
+    <div class="tab-panel" *ngIf="activeTab === 'auditoria'">
+      <div class="panel-head">
+        <div>
+          <h3>Registros de auditoría</h3>
+          <p>Trazabilidad de accesos, consultas y cambios sobre datos clínicos sensibles.</p>
+        </div>
+        <div class="panel-head-actions">
+          <button class="ht-btn ht-btn-ghost ht-btn-sm" type="button" (click)="clearAuditFilters()">
+            <ion-icon name="refresh-outline"></ion-icon>
+            Limpiar
+          </button>
+          <button class="ht-btn ht-btn-primary ht-btn-sm" type="button" (click)="exportCsv()">
+            <ion-icon name="download-outline"></ion-icon>
+            Exportar CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="audit-stats">
+        <div class="audit-stat">
+          <b>{{ auditLog.length }}</b>
+          <span>Eventos totales</span>
+        </div>
+        <div class="audit-stat">
+          <b>{{ warningCount }}</b>
+          <span>Advertencias</span>
+        </div>
+        <div class="audit-stat critical">
+          <b>{{ criticalCount }}</b>
+          <span>Eventos críticos</span>
+        </div>
+        <div class="audit-stat">
+          <b>{{ filteredAudit.length }}</b>
+          <span>Resultados del filtro</span>
+        </div>
+      </div>
+
+      <div class="panel-toolbar">
+        <div class="ht-input-wrap panel-search">
+          <ion-icon name="search-outline"></ion-icon>
+          <input
+            class="ht-input"
+            [(ngModel)]="auditSearch"
+            placeholder="Buscar por usuario, acción, módulo, detalle o IP..."
+          />
+        </div>
+        <select class="ht-select" [(ngModel)]="auditSeverity" aria-label="Filtrar por severidad">
+          <option value="todos">Todas las severidades</option>
+          <option value="info">Informativo</option>
+          <option value="warning">Advertencia</option>
+          <option value="critical">Crítico</option>
+        </select>
+        <span class="results-count">{{ filteredAudit.length }} eventos</span>
+      </div>
+
+      <div class="ht-table-wrap">
+        <table class="ht-table">
+          <thead>
+            <tr>
+              <th>Severidad</th>
+              <th>Fecha / hora</th>
+              <th>Usuario</th>
+              <th>Acción</th>
+              <th>Módulo</th>
+              <th>Detalle</th>
+              <th>IP origen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of filteredAudit; trackBy: trackById">
+              <td>
+                <span class="severity-cell">
+                  <i class="severity-dot" [ngClass]="dotClass(entry.severity)"></i>
+                  {{ severityLabelFor(entry.severity) }}
+                </span>
+              </td>
+              <td class="soft-cell nowrap">{{ shortDate(entry.date) }} · {{ entry.time }}</td>
+              <td class="nowrap"><b class="user-cell">{{ entry.user }}</b></td>
+              <td class="nowrap">{{ entry.action }}</td>
+              <td class="soft-cell nowrap">{{ entry.module }}</td>
+              <td class="detail-cell">{{ entry.detail }}</td>
+              <td class="soft-cell nowrap">{{ entry.ip }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ht-empty" *ngIf="filteredAudit.length === 0">
+        <ion-icon name="clipboard-outline"></ion-icon>
+        No hay registros de auditoría con los filtros seleccionados.
+      </div>
+
+      <div class="panel-note">
+        <ion-icon name="lock-closed-outline"></ion-icon>
+        <span>
+          Los registros son de solo lectura e inmutables. La exportación también genera un evento
+          de auditoría para conservar la trazabilidad.
+        </span>
+      </div>
+    </div>
+
+    <!-- HONEYPOT / DETECCIÓN DE INTRUSOS -->
+    <div class="tab-panel" *ngIf="activeTab === 'honeypot'">
+      <div class="panel-head">
+        <div>
+          <h3>Detección de intrusos</h3>
+          <p>
+            Honeypot didáctico: rutas y registros trampa que alertan cuando alguien intenta acceder
+            fuera del flujo normal del expediente.
+          </p>
+        </div>
+        <div class="panel-head-actions">
+          <button class="ht-btn ht-btn-ghost ht-btn-sm" type="button" (click)="refreshHoneypotLog()">
+            <ion-icon name="refresh-outline"></ion-icon>
+            Recargar
+          </button>
+          <button class="ht-btn ht-btn-danger ht-btn-sm" type="button" (click)="clearHoneypotLog()">
+            <ion-icon name="trash-outline"></ion-icon>
+            Vaciar registro
+          </button>
+        </div>
+      </div>
+
+      <div class="saved-banner honeypot-banner" *ngIf="honeypotMessage">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        <span>{{ honeypotMessage }}</span>
+        <button type="button" class="banner-close" (click)="honeypotMessage = ''" aria-label="Cerrar">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+
+      <div class="honeypot-notice">
+        <span class="notice-icon"><ion-icon name="bug-outline"></ion-icon></span>
+        <div>
+          <b>Honeypot didáctico del lado cliente</b>
+          <p>
+            Los eventos se guardan únicamente en el <code>localStorage</code> de este navegador
+            (<code>ht_honeypot_events</code>). No se capturan IP reales ni se envía información a
+            ningún servidor: la IP de origen es simulada.
+          </p>
+        </div>
+      </div>
+
+      <div class="audit-stats honeypot-stats">
+        <div class="audit-stat">
+          <b>{{ honeypotLog.length }}</b>
+          <span>Eventos capturados</span>
+        </div>
+        <div class="audit-stat critical">
+          <b>{{ honeypotCriticalCount }}</b>
+          <span>Eventos críticos</span>
+        </div>
+        <div class="audit-stat">
+          <b>{{ honeypotTypeCount }}</b>
+          <span>Tipos de señuelo activados</span>
+        </div>
+        <div class="audit-stat">
+          <b>2</b>
+          <span>Rutas trampa desplegadas</span>
+        </div>
+      </div>
+
+      <div class="decoy-grid">
+        <article class="decoy-card">
+          <span class="decoy-card-icon"><ion-icon name="server-outline"></ion-icon></span>
+          <div class="decoy-card-text">
+            <b>Consola de respaldos</b>
+            <span>Ruta señuelo pública, sin enlaces en el menú</span>
+            <code>{{ decoyRoute }}</code>
+          </div>
+          <a class="ht-btn ht-btn-ghost ht-btn-sm" [href]="decoyRoute" target="_blank" rel="noopener">
+            <ion-icon name="arrow-forward-outline"></ion-icon>
+            Abrir
+          </a>
+        </article>
+
+        <article class="decoy-card">
+          <span class="decoy-card-icon"><ion-icon name="finger-print-outline"></ion-icon></span>
+          <div class="decoy-card-text">
+            <b>Paciente canario</b>
+            <span>Honeytoken clínico excluido de listados y métricas</span>
+            <code>{{ honeytokenRoute }}</code>
+          </div>
+          <button class="ht-btn ht-btn-ghost ht-btn-sm" type="button" (click)="copyRoute(honeytokenRoute)">
+            <ion-icon name="clipboard-outline"></ion-icon>
+            Copiar
+          </button>
+        </article>
+
+        <article class="decoy-card">
+          <span class="decoy-card-icon"><ion-icon name="key-outline"></ion-icon></span>
+          <div class="decoy-card-text">
+            <b>Credenciales internas</b>
+            <span>Login falso dentro de la consola de respaldos</span>
+            <code>operador&#64;healthtext.local</code>
+          </div>
+          <span class="decoy-card-tag">Señuelo</span>
+        </article>
+      </div>
+
+      <div class="ht-table-wrap">
+        <table class="ht-table honeypot-table">
+          <thead>
+            <tr>
+              <th>Severidad</th>
+              <th>Fecha / hora</th>
+              <th>Tipo</th>
+              <th>Ruta</th>
+              <th>Usuario / rol</th>
+              <th>Origen</th>
+              <th>Detalle</th>
+              <th>Agente</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let event of honeypotLog; trackBy: trackById">
+              <td>
+                <span class="severity-cell">
+                  <i class="severity-dot" [ngClass]="dotClass(event.severity)"></i>
+                  {{ severityLabelFor(event.severity) }}
+                </span>
+              </td>
+              <td class="soft-cell nowrap">{{ eventTime(event.timestamp) }}</td>
+              <td class="nowrap">
+                <b class="user-cell">{{ event.type }}</b>
+                <span class="attempt-user" *ngIf="event.attemptedUser">
+                  usuario: {{ event.attemptedUser }}
+                </span>
+              </td>
+              <td class="nowrap"><code class="route-code">{{ event.route }}</code></td>
+              <td class="nowrap">
+                <b class="user-cell">{{ event.user }}</b>
+                <span class="role-cell">{{ event.role }}</span>
+              </td>
+              <td class="soft-cell nowrap">{{ event.origin }}</td>
+              <td class="detail-cell">{{ event.detail }}</td>
+              <td class="soft-cell agent-cell" [title]="event.userAgent">{{ event.userAgent }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ht-empty" *ngIf="honeypotLog.length === 0">
+        <ion-icon name="bug-outline"></ion-icon>
+        Aún no hay eventos. Abre la ruta señuelo o visita el paciente canario para activar una alerta.
+      </div>
+
+      <div class="panel-note">
+        <ion-icon name="warning-outline"></ion-icon>
+        <span>
+          Para la demo: abre <b>{{ decoyRoute }}</b> o el expediente <b>{{ honeytokenRoute }}</b>
+          con una sesión de médico y vuelve aquí como administrador. El contador de la campana del
+          topbar se actualiza al enfocar la ventana o navegar dentro del sistema.
+        </span>
+      </div>
+    </div>
+
+    <!-- SEGURIDAD -->
+    <div class="tab-panel" *ngIf="activeTab === 'seguridad'">
+      <div class="security-hero">
+        <div class="security-hero-icon">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+        </div>
+        <div class="security-hero-text">
+          <span class="ht-eyebrow">Defensa en profundidad</span>
+          <h3>Plan maestro de seguridad en 7 capas</h3>
+          <p>
+            Cada capa agrega controles independientes para proteger datos médicos sensibles.
+            Un incidente en una capa no compromete automáticamente las demás.
+          </p>
+        </div>
+        <div class="security-score">
+          <b>7/7</b>
+          <span>capas activas</span>
+        </div>
+      </div>
+
+      <div class="layers-grid">
+        <article class="layer-card" *ngFor="let layer of securityLayers" [ngClass]="'tone-' + layer.tone">
+          <div class="layer-head">
+            <span class="layer-icon"><ion-icon [name]="layer.icon"></ion-icon></span>
+            <div>
+              <b>{{ layer.title }}</b>
+              <span>{{ layer.subtitle }}</span>
+            </div>
+            <i class="layer-status" title="Capa activa"></i>
+          </div>
+          <ul>
+            <li *ngFor="let control of layer.controls">
+              <ion-icon name="checkmark"></ion-icon>
+              {{ control }}
+            </li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="owasp-section">
+        <div class="owasp-head">
+          <div>
+            <h4>Mitigación de vulnerabilidades OWASP</h4>
+            <p>Controles priorizados para la API y el frontend del expediente clínico.</p>
+          </div>
+          <span class="ht-badge ht-badge--success">
+            <ion-icon name="shield-checkmark-outline"></ion-icon>
+            3/3 mitigadas
+          </span>
+        </div>
+
+        <div class="owasp-grid">
+          <article class="owasp-card" *ngFor="let item of owaspItems">
+            <span class="owasp-code">{{ item.code }}</span>
+            <div>
+              <b>{{ item.title }}</b>
+              <p>{{ item.description }}</p>
+            </div>
+            <span class="ht-badge ht-badge--success">{{ item.status }}</span>
+          </article>
+        </div>
+      </div>
+
+      <div class="compliance-grid">
+        <article class="compliance-card">
+          <ion-icon name="finger-print-outline"></ion-icon>
+          <div>
+            <b>Control de acceso basado en roles</b>
+            <p>Privilegios mínimos por módulo, con revisión periódica de accesos.</p>
+          </div>
+        </article>
+        <article class="compliance-card">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <div>
+            <b>Protección de datos personales</b>
+            <p>Cifrado, enmascaramiento y retención alineados a la Ley 1581 de 2012.</p>
+          </div>
+        </article>
+        <article class="compliance-card">
+          <ion-icon name="clipboard-outline"></ion-icon>
+          <div>
+            <b>Auditoría inmutable</b>
+            <p>Registro de cada acceso y cambio sobre la historia clínica.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="showUserModal" (click)="closeUserModal()">
+  <div class="modal-card modal-card--sm" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div>
+        <span class="ht-eyebrow"><ion-icon name="person-outline"></ion-icon> Nuevo acceso</span>
+        <h3>Crear usuario del sistema</h3>
+        <p>El usuario podrá acceder según el rol y los permisos asignados.</p>
+      </div>
+      <button class="ht-icon-btn" type="button" (click)="closeUserModal()" aria-label="Cerrar">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="ht-form-grid">
+        <div class="ht-field ht-col-full">
+          <label>Nombre completo *</label>
+          <input class="ht-input" [(ngModel)]="nuevo.name" placeholder="Ej. Dra. Laura Martínez" />
+        </div>
+        <div class="ht-field ht-col-full">
+          <label>Correo institucional *</label>
+          <input class="ht-input" type="email" [(ngModel)]="nuevo.email" placeholder="nombre@healthtext.com" />
+        </div>
+        <div class="ht-field">
+          <label>Rol</label>
+          <select class="ht-select" [(ngModel)]="nuevo.role">
+            <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+          </select>
+        </div>
+        <div class="ht-field">
+          <label>Estado inicial</label>
+          <select class="ht-select" [(ngModel)]="nuevo.status">
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-error" *ngIf="userModalError">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        {{ userModalError }}
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="ht-btn ht-btn-ghost" type="button" (click)="closeUserModal()">Cancelar</button>
+      <button class="ht-btn ht-btn-primary" type="button" (click)="saveUser()">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        Crear usuario
+      </button>
+    </div>
+  </div>
+</div>

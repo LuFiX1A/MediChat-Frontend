@@ -1,0 +1,264 @@
+<div class="ht-page consultation-page">
+  <div class="ht-page-head">
+    <div>
+      <span class="ht-eyebrow"><ion-icon name="medkit-outline"></ion-icon> Registro clínico asistido</span>
+      <h2 class="ht-title">Consulta médica</h2>
+      <p class="ht-subtitle">
+        Captura síntomas, notas clínicas y signos vitales, y registra el diagnóstico
+        y el tratamiento directamente en el expediente del paciente.
+      </p>
+    </div>
+    <div class="ht-actions">
+      <button class="ht-btn ht-btn-ghost" type="button" (click)="newConsultation()">
+        <ion-icon name="refresh-outline"></ion-icon>
+        Limpiar formulario
+      </button>
+      <a class="ht-btn ht-btn-primary" routerLink="/pacientes">
+        <ion-icon name="people-outline"></ion-icon>
+        Ver pacientes
+      </a>
+    </div>
+  </div>
+
+  <div class="success-banner" *ngIf="saved">
+    <ion-icon name="checkmark-circle-outline"></ion-icon>
+    <div>
+      <b>Consulta guardada correctamente</b>
+      <span>La nota clínica de {{ savedPatientName }} quedó registrada en su expediente y en la auditoría.</span>
+    </div>
+    <a class="ht-btn ht-btn-success ht-btn-sm" [routerLink]="['/pacientes', savedPatientId]">
+      Abrir expediente
+      <ion-icon name="arrow-forward-outline"></ion-icon>
+    </a>
+  </div>
+
+  <div class="consult-layout">
+    <div class="form-column">
+      <!-- 1. PACIENTE Y MOTIVO -->
+      <section class="ht-card form-card">
+        <div class="form-card-head">
+          <span class="step">1</span>
+          <div>
+            <h3>Paciente y motivo de consulta</h3>
+            <p>Identifica el expediente y el motivo principal de la atención.</p>
+          </div>
+          <span class="ht-badge ht-badge--info">{{ dateLabel }}</span>
+        </div>
+        <div class="form-card-body">
+          <div class="ht-form-grid">
+            <div class="ht-field ht-col-full">
+              <label>Paciente *</label>
+              <select class="ht-select" [(ngModel)]="consulta.patientId" (ngModelChange)="onPatientChange()">
+                <option value="">Selecciona un paciente...</option>
+                <option *ngFor="let patient of patients" [value]="patient.id">
+                  {{ patient.name }} · {{ patient.document }}
+                </option>
+              </select>
+            </div>
+            <div class="ht-field">
+              <label>Fecha de la consulta</label>
+              <input class="ht-input" type="date" [(ngModel)]="consulta.date" />
+            </div>
+            <div class="ht-field">
+              <label>Motivo principal *</label>
+              <input class="ht-input" [(ngModel)]="consulta.reason" placeholder="Ej. Control de hipertensión" />
+            </div>
+          </div>
+
+          <div class="patient-preview" *ngIf="selectedPatient">
+            <div class="ht-avatar" [style.background]="selectedPatient.color">
+              {{ patientInitials }}
+            </div>
+            <div class="preview-info">
+              <div class="preview-title">
+                <b>{{ selectedPatient.name }}</b>
+                <span class="ht-badge" [ngClass]="badge(selectedPatient.risk)">Riesgo {{ selectedPatient.risk }}</span>
+                <span class="ht-badge" [ngClass]="badge(selectedPatient.status)">{{ selectedPatient.status }}</span>
+              </div>
+              <p>
+                {{ selectedPatient.age }} años · {{ selectedPatient.bloodType }} ·
+                {{ selectedPatient.insurance }}
+              </p>
+              <div class="preview-tags">
+                <span class="ht-chip" *ngFor="let condition of selectedPatient.conditions">{{ condition }}</span>
+                <span class="ht-chip" *ngFor="let allergy of selectedPatient.allergies">
+                  <ion-icon name="warning-outline"></ion-icon>
+                  Alergia: {{ allergy }}
+                </span>
+                <span class="ht-chip" *ngIf="selectedPatient.conditions.length === 0 && selectedPatient.allergies.length === 0">
+                  Sin antecedentes relevantes
+                </span>
+              </div>
+            </div>
+            <a class="ht-link" [routerLink]="['/pacientes', selectedPatient.id]">
+              Ver expediente
+              <ion-icon name="arrow-forward-outline"></ion-icon>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. SÍNTOMAS -->
+      <section class="ht-card form-card">
+        <div class="form-card-head">
+          <span class="step">2</span>
+          <div>
+            <h3>Captura de síntomas</h3>
+            <p>Describe con el paciente los síntomas referidos y su evolución.</p>
+          </div>
+        </div>
+        <div class="form-card-body">
+          <div class="ht-field">
+            <label>Síntomas reportados *</label>
+            <textarea
+              class="ht-textarea"
+              [(ngModel)]="consulta.symptoms"
+              placeholder="Ej. Dolor abdominal tipo cólico desde hace 2 días, asociado a náuseas y fiebre de 38.2 °C..."
+            ></textarea>
+            <small>Incluye inicio, duración, intensidad y factores que mejoran o empeoran el cuadro.</small>
+          </div>
+
+          <div class="symptom-chips">
+            <span class="symptom-label">Síntomas frecuentes:</span>
+            <button
+              class="ht-chip ht-chip--button"
+              type="button"
+              *ngFor="let symptom of symptomSuggestions"
+              (click)="addSymptom(symptom)"
+            >
+              <ion-icon name="add-outline"></ion-icon>
+              {{ symptom }}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. NOTAS Y VITALES -->
+      <section class="ht-card form-card">
+        <div class="form-card-head">
+          <span class="step">3</span>
+          <div>
+            <h3>Notas clínicas y signos vitales</h3>
+            <p>Documenta el examen físico y las mediciones objetivas.</p>
+          </div>
+        </div>
+        <div class="form-card-body">
+          <div class="ht-field">
+            <label>Notas clínicas</label>
+            <textarea
+              class="ht-textarea"
+              [(ngModel)]="consulta.notes"
+              placeholder="Hallazgos del examen físico, evolución, interpretación de ayudas diagnósticas..."
+            ></textarea>
+          </div>
+
+          <div class="vitals-form">
+            <div class="ht-field">
+              <label>Presión arterial</label>
+              <input class="ht-input" [(ngModel)]="consulta.pressure" placeholder="120/80" />
+            </div>
+            <div class="ht-field">
+              <label>Frecuencia cardíaca</label>
+              <input class="ht-input" type="number" [(ngModel)]="consulta.heartRate" placeholder="lpm" />
+            </div>
+            <div class="ht-field">
+              <label>Temperatura (°C)</label>
+              <input class="ht-input" type="number" step="0.1" [(ngModel)]="consulta.temperature" placeholder="36.5" />
+            </div>
+            <div class="ht-field">
+              <label>Peso (kg)</label>
+              <input class="ht-input" type="number" step="0.1" [(ngModel)]="consulta.weight" placeholder="70" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. DIAGNÓSTICO -->
+      <section class="ht-card form-card">
+        <div class="form-card-head">
+          <span class="step">4</span>
+          <div>
+            <h3>Diagnóstico y plan de tratamiento</h3>
+            <p>Registra la impresión clínica, la especialidad y el manejo indicado.</p>
+          </div>
+        </div>
+        <div class="form-card-body">
+          <div class="ht-form-grid">
+            <div class="ht-field ht-col-full">
+              <label>Diagnóstico / impresión clínica *</label>
+              <input class="ht-input" [(ngModel)]="consulta.diagnosis" placeholder="Ej. Síndrome de intestino irritable" />
+            </div>
+            <div class="ht-field">
+              <label>Especialidad</label>
+              <select class="ht-select" [(ngModel)]="consulta.specialty">
+                <option *ngFor="let specialty of specialties" [value]="specialty">{{ specialty }}</option>
+              </select>
+            </div>
+            <div class="ht-field">
+              <label>Nivel de riesgo</label>
+              <select class="ht-select" [(ngModel)]="consulta.risk">
+                <option value="Bajo">Bajo</option>
+                <option value="Medio">Medio</option>
+                <option value="Alto">Alto</option>
+              </select>
+            </div>
+            <div class="ht-field">
+              <label>Estado del seguimiento</label>
+              <select class="ht-select" [(ngModel)]="consulta.status">
+                <option value="Seguimiento">Seguimiento</option>
+                <option value="Activa">Activa</option>
+                <option value="Finalizada">Finalizada</option>
+              </select>
+            </div>
+            <div class="ht-field ht-col-full">
+              <label>Tratamiento e indicaciones</label>
+              <textarea
+                class="ht-textarea"
+                [(ngModel)]="consulta.treatment"
+                placeholder="Medicamentos, dosis, recomendaciones y próxima revisión..."
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="modal-error" *ngIf="formError">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            {{ formError }}
+          </div>
+
+          <div class="form-actions">
+            <button class="ht-btn ht-btn-ghost" type="button" (click)="newConsultation()">Cancelar</button>
+            <button class="ht-btn ht-btn-primary" type="button" (click)="saveConsultation()">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              Guardar consulta en expediente
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="side-column">
+      <article class="ht-card tips-card">
+        <div class="ht-card-head">
+          <div>
+            <h3>Buenas prácticas de registro</h3>
+            <p>Calidad de la nota clínica</p>
+          </div>
+        </div>
+        <div class="tips-body">
+          <div class="tip">
+            <span class="tip-icon"><ion-icon name="document-text-outline"></ion-icon></span>
+            <p><b>Sé objetivo:</b> registra hechos observables y referidos por el paciente.</p>
+          </div>
+          <div class="tip">
+            <span class="tip-icon"><ion-icon name="pulse-outline"></ion-icon></span>
+            <p><b>Completa los vitales:</b> mejoran la trazabilidad y el seguimiento del caso.</p>
+          </div>
+          <div class="tip">
+            <span class="tip-icon"><ion-icon name="lock-closed-outline"></ion-icon></span>
+            <p><b>Protege la información:</b> el acceso queda registrado en la auditoría.</p>
+          </div>
+        </div>
+      </article>
+    </aside>
+  </div>
+</div>

@@ -1,0 +1,136 @@
+.patients-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.patient-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+
+  .kpi {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid var(--ht-border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 22px rgba(22, 50, 79, 0.045);
+
+    .kpi-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+
+      &.blue { background: #e8f1fe; color: #2563eb; }
+      &.green { background: #e7f8f1; color: #0f9d72; }
+      &.amber { background: #fdf3e3; color: #d97706; }
+      &.red { background: #fdecec; color: #dc2626; }
+    }
+
+    b {
+      display: block;
+      font-size: 1.28rem;
+      font-weight: 800;
+      color: var(--ht-navy);
+      line-height: 1;
+    }
+
+    span {
+      display: block;
+      font-size: 0.68rem;
+      color: var(--ht-muted);
+      margin-top: 4px;
+    }
+  }
+}
+
+.patients-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  flex-wrap: wrap;
+
+  .toolbar-search {
+    flex: 1;
+    min-width: 240px;
+  }
+
+  .ht-select {
+    width: 180px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    font-size: 0.8rem;
+  }
+
+  .results-count {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #5e7d99;
+    background: #f2f7fb;
+    padding: 7px 11px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+}
+
+.doc-cell {
+  font-size: 0.79rem;
+  font-weight: 700;
+  color: #405b76;
+  white-space: nowrap;
+}
+
+.soft-cell {
+  color: var(--ht-muted);
+  font-size: 0.77rem;
+  white-space: nowrap;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+
+  .ht-icon-btn {
+    width: 33px;
+    height: 33px;
+    border-radius: 9px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 1100px) {
+  .patient-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .patient-kpis {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .patients-toolbar {
+    .toolbar-search {
+      min-width: 100%;
+    }
+
+    .ht-select {
+      width: 100%;
+    }
+
+    .results-count {
+      margin-left: 0;
+    }
+  }
+}

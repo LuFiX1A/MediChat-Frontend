@@ -1,0 +1,348 @@
+<div class="ht-page appointments-page">
+  <div class="ht-page-head">
+    <div>
+      <span class="ht-eyebrow"><ion-icon name="calendar-outline"></ion-icon> Agenda clínica</span>
+      <h2 class="ht-title">Gestión de citas</h2>
+      <p class="ht-subtitle">
+        Consulta la agenda del equipo médico, agenda nuevas citas y actualiza su estado.
+        Cada movimiento queda registrado en la auditoría del sistema.
+      </p>
+    </div>
+    <div class="ht-actions">
+      <button class="ht-btn ht-btn-ghost" type="button" (click)="goToday()">
+        <ion-icon name="time-outline"></ion-icon>
+        Hoy
+      </button>
+      <button class="ht-btn ht-btn-primary" type="button" (click)="openNew()">
+        <ion-icon name="add-outline"></ion-icon>
+        Agendar cita
+      </button>
+    </div>
+  </div>
+
+  <div class="saved-banner" *ngIf="savedMessage">
+    <ion-icon name="checkmark-circle-outline"></ion-icon>
+    <span>{{ savedMessage }}</span>
+    <button type="button" class="banner-close" (click)="savedMessage = ''" aria-label="Cerrar">
+      <ion-icon name="close-outline"></ion-icon>
+    </button>
+  </div>
+
+  <section class="appointment-kpis">
+    <div class="kpi">
+      <span class="kpi-icon blue"><ion-icon name="calendar-number-outline"></ion-icon></span>
+      <div><b>{{ todayCount }}</b><span>Citas para hoy</span></div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon green"><ion-icon name="checkmark-circle-outline"></ion-icon></span>
+      <div><b>{{ confirmedCount }}</b><span>Confirmadas</span></div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon amber"><ion-icon name="time-outline"></ion-icon></span>
+      <div><b>{{ pendingCount }}</b><span>Pendientes</span></div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon red"><ion-icon name="close-circle"></ion-icon></span>
+      <div><b>{{ cancelledCount }}</b><span>Canceladas</span></div>
+    </div>
+  </section>
+
+  <div class="agenda-layout">
+    <article class="ht-card calendar-card">
+      <div class="calendar-head">
+        <div>
+          <h3>Calendario de citas</h3>
+          <p>Selecciona un día para ver su agenda</p>
+        </div>
+        <div class="month-nav">
+          <button class="ht-icon-btn" type="button" (click)="changeMonth(-1)" aria-label="Mes anterior">
+            <ion-icon name="chevron-back-outline"></ion-icon>
+          </button>
+          <span class="month-label">{{ monthLabel }}</span>
+          <button class="ht-icon-btn" type="button" (click)="changeMonth(1)" aria-label="Mes siguiente">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="calendar-body">
+        <div class="weekday-row">
+          <span *ngFor="let weekday of weekdays">{{ weekday }}</span>
+        </div>
+
+        <div class="days-grid">
+          <button
+            class="day-cell"
+            type="button"
+            *ngFor="let day of calendarDays"
+            [class.outside]="!day.inMonth"
+            [class.today]="day.isToday"
+            [class.selected]="day.iso === selectedDate"
+            (click)="selectDay(day)"
+          >
+            <span class="day-number">{{ day.day }}</span>
+            <span class="day-events" *ngIf="day.count > 0">
+              <i class="dot" [class.pending]="day.hasCritical"></i>
+              <em>{{ day.count }}</em>
+            </span>
+          </button>
+        </div>
+
+        <div class="calendar-legend">
+          <span><i class="legend-dot confirmed"></i> Citas confirmadas</span>
+          <span><i class="legend-dot pending"></i> Citas pendientes</span>
+          <span><i class="legend-dot today"></i> Hoy</span>
+        </div>
+      </div>
+    </article>
+
+    <aside class="day-panel">
+      <article class="ht-card day-card">
+        <div class="day-head">
+          <div>
+            <span class="day-eyebrow">Agenda seleccionada</span>
+            <h3>{{ selectedLabel }}</h3>
+            <p>{{ selectedAppointments.length }} citas registradas</p>
+          </div>
+          <button class="ht-btn ht-btn-ghost ht-btn-sm" type="button" (click)="openNew()">
+            <ion-icon name="add-outline"></ion-icon>
+            Agendar
+          </button>
+        </div>
+
+        <div class="day-filter">
+          <label for="specialty-filter">Especialidad</label>
+          <select id="specialty-filter" class="ht-select" [(ngModel)]="filterSpecialty">
+            <option value="Todas">Todas las especialidades</option>
+            <option *ngFor="let specialty of specialties" [value]="specialty">{{ specialty }}</option>
+          </select>
+        </div>
+
+        <div class="day-list">
+          <div class="day-item" *ngFor="let appointment of selectedAppointments; trackBy: trackById">
+            <div class="day-time">
+              <b>{{ appointment.time }}</b>
+              <span>{{ appointment.duration }} min</span>
+            </div>
+
+            <div class="day-info">
+              <div class="day-person">
+                <div class="ht-avatar ht-avatar--sm" style="background: #2e4a70">
+                  {{ getInitials(appointment.patientName) }}
+                </div>
+                <div class="ht-person-text">
+                  <b>{{ appointment.patientName }}</b>
+                  <span>{{ appointment.specialty }} · {{ appointment.doctor }}</span>
+                </div>
+                <span class="ht-badge" [ngClass]="badge(appointment.status)">{{ appointment.status }}</span>
+              </div>
+              <p class="day-reason">{{ appointment.reason }}</p>
+              <div class="day-actions">
+                <button class="ht-link" type="button" (click)="editAppointment(appointment)">
+                  <ion-icon name="create-outline"></ion-icon>
+                  Modificar
+                </button>
+                <button
+                  class="ht-link"
+                  type="button"
+                  *ngIf="appointment.status !== 'Confirmada' && appointment.status !== 'Completada'"
+                  (click)="setStatus(appointment, 'Confirmada')"
+                >
+                  <ion-icon name="checkmark-circle-outline"></ion-icon>
+                  Confirmar
+                </button>
+                <button
+                  class="ht-link"
+                  type="button"
+                  *ngIf="appointment.status !== 'Completada' && appointment.status !== 'Cancelada'"
+                  (click)="setStatus(appointment, 'Completada')"
+                >
+                  <ion-icon name="checkmark"></ion-icon>
+                  Completar
+                </button>
+                <button
+                  class="ht-link link-danger"
+                  type="button"
+                  *ngIf="appointment.status !== 'Cancelada' && appointment.status !== 'Completada'"
+                  (click)="setStatus(appointment, 'Cancelada')"
+                >
+                  <ion-icon name="close-outline"></ion-icon>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ht-empty" *ngIf="selectedAppointments.length === 0">
+            <ion-icon name="calendar-outline"></ion-icon>
+            No hay citas para este día con los filtros seleccionados.
+          </div>
+        </div>
+      </article>
+    </aside>
+  </div>
+
+  <article class="ht-card upcoming-card">
+    <div class="ht-card-head">
+      <div>
+        <h3>Próximas citas</h3>
+        <p>Agenda consolidada del equipo médico</p>
+      </div>
+      <span class="ht-badge ht-badge--info">{{ upcoming.length }} programadas</span>
+    </div>
+
+    <div class="ht-table-wrap">
+      <table class="ht-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Paciente</th>
+            <th>Especialidad</th>
+            <th>Profesional</th>
+            <th>Motivo</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let appointment of upcoming; trackBy: trackById">
+            <td class="nowrap">
+              {{ appointment.date === today ? 'Hoy' : shortDate(appointment.date) }}
+            </td>
+            <td class="nowrap"><b class="time-strong">{{ appointment.time }}</b></td>
+            <td>
+              <div class="ht-person">
+                <div class="ht-avatar ht-avatar--sm" [style.background]="'#2e4a70'">
+                  {{ getInitials(appointment.patientName) }}
+                </div>
+                <div class="ht-person-text">
+                  <b>{{ appointment.patientName }}</b>
+                  <span>{{ appointment.duration }} minutos</span>
+                </div>
+              </div>
+            </td>
+            <td class="soft-cell">{{ appointment.specialty }}</td>
+            <td class="soft-cell">{{ appointment.doctor }}</td>
+            <td class="soft-cell">{{ appointment.reason }}</td>
+            <td><span class="ht-badge" [ngClass]="badge(appointment.status)">{{ appointment.status }}</span></td>
+            <td>
+              <div class="row-actions">
+                <button class="ht-btn ht-btn-ghost ht-btn-sm" type="button" (click)="editAppointment(appointment)">
+                  <ion-icon name="create-outline"></ion-icon>
+                  Editar
+                </button>
+                <button class="ht-icon-btn" type="button" title="Abrir expediente" (click)="verExpediente(appointment.patientId)">
+                  <ion-icon name="document-text-outline"></ion-icon>
+                </button>
+                <button
+                  class="ht-icon-btn ht-icon-btn--danger"
+                  type="button"
+                  title="Cancelar cita"
+                  *ngIf="appointment.status !== 'Cancelada'"
+                  (click)="setStatus(appointment, 'Cancelada')"
+                >
+                  <ion-icon name="trash-outline"></ion-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ht-empty" *ngIf="upcoming.length === 0">
+      <ion-icon name="calendar-outline"></ion-icon>
+      No hay citas próximas registradas.
+    </div>
+  </article>
+</div>
+
+<div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div>
+        <span class="ht-eyebrow"><ion-icon name="calendar-outline"></ion-icon> {{ editingId ? 'Editar cita' : 'Nueva cita' }}</span>
+        <h3>{{ editingId ? 'Modificar cita médica' : 'Agendar cita médica' }}</h3>
+        <p>Completa la información de la cita. Los campos con * son obligatorios.</p>
+      </div>
+      <button class="ht-icon-btn" type="button" (click)="closeModal()" aria-label="Cerrar">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="ht-form-grid">
+        <div class="ht-field ht-col-full">
+          <label>Paciente *</label>
+          <select class="ht-select" [(ngModel)]="form.patientId">
+            <option value="">Selecciona un paciente...</option>
+            <option *ngFor="let patient of patients" [value]="patient.id">
+              {{ patient.name }} · {{ patient.document }}
+            </option>
+          </select>
+        </div>
+
+        <div class="ht-field">
+          <label>Fecha *</label>
+          <input class="ht-input" type="date" [(ngModel)]="form.date" />
+        </div>
+
+        <div class="ht-field">
+          <label>Hora *</label>
+          <input class="ht-input" type="time" [(ngModel)]="form.time" />
+        </div>
+
+        <div class="ht-field">
+          <label>Duración</label>
+          <select class="ht-select" [(ngModel)]="form.duration">
+            <option *ngFor="let duration of durations" [value]="duration">{{ duration }} minutos</option>
+          </select>
+        </div>
+
+        <div class="ht-field">
+          <label>Especialidad</label>
+          <select class="ht-select" [(ngModel)]="form.specialty">
+            <option *ngFor="let specialty of specialties" [value]="specialty">{{ specialty }}</option>
+          </select>
+        </div>
+
+        <div class="ht-field">
+          <label>Profesional</label>
+          <select class="ht-select" [(ngModel)]="form.doctor">
+            <option *ngFor="let doctor of doctors" [value]="doctor">{{ doctor }}</option>
+          </select>
+        </div>
+
+        <div class="ht-field">
+          <label>Estado</label>
+          <select class="ht-select" [(ngModel)]="form.status">
+            <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+          </select>
+        </div>
+
+        <div class="ht-field ht-col-full">
+          <label>Motivo de la cita *</label>
+          <textarea
+            class="ht-textarea"
+            [(ngModel)]="form.reason"
+            placeholder="Ej. Control de hipertensión arterial y revisión de resultados"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="modal-error" *ngIf="modalError">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        {{ modalError }}
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="ht-btn ht-btn-ghost" type="button" (click)="closeModal()">Cancelar</button>
+      <button class="ht-btn ht-btn-primary" type="button" (click)="saveAppointment()">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        {{ editingId ? 'Guardar cambios' : 'Agendar cita' }}
+      </button>
+    </div>
+  </div>
+</div>

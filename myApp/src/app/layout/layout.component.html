@@ -1,0 +1,109 @@
+<div class="ht-shell" #shell>
+  <aside class="ht-sidebar" [class.open]="sidebarOpen">
+    <div class="ht-brand">
+      <div class="ht-brand-mark">
+        <ion-icon name="pulse-outline"></ion-icon>
+      </div>
+      <div class="ht-brand-text">
+        <b>HealthText</b>
+        <span>Cloud &amp; Smart Record</span>
+      </div>
+    </div>
+
+    <div class="ht-sidebar-label">{{ isAdmin ? 'Espacio administrativo' : 'Espacio clínico' }}</div>
+
+    <nav class="ht-nav">
+      <a
+        *ngFor="let item of navItems"
+        [routerLink]="item.route"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.exact }"
+        (click)="closeSidebar()"
+      >
+        <ion-icon [name]="item.icon"></ion-icon>
+        <span>{{ item.label }}</span>
+        <em *ngIf="item.badge">{{ item.badge }}</em>
+      </a>
+    </nav>
+
+    <div class="ht-sidebar-bottom">
+      <div class="ht-secure-card">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <div>
+          <b>Sesión protegida</b>
+          <span>Cifrado TLS 1.3 · 7 capas</span>
+        </div>
+      </div>
+
+      <div class="ht-user-card" *ngIf="user">
+        <div class="ht-avatar" style="background: linear-gradient(135deg, #73c7e3, #3b82f6)">
+          {{ user.initials }}
+        </div>
+        <div class="ht-user-info">
+          <b>{{ user.name }}</b>
+          <span>{{ user.role }}</span>
+        </div>
+        <button class="ht-logout" type="button" title="Cerrar sesión" (click)="logout()">
+          <ion-icon name="log-out-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="ht-overlay" *ngIf="sidebarOpen" (click)="closeSidebar()"></div>
+
+  <div class="ht-main">
+    <header class="ht-topbar">
+      <button class="ht-menu-btn" type="button" (click)="toggleSidebar()" aria-label="Abrir menú">
+        <ion-icon name="menu-outline"></ion-icon>
+      </button>
+
+      <div class="ht-topbar-title">
+        <h1>{{ pageTitle }}</h1>
+        <p>{{ pageSubtitle }}</p>
+      </div>
+
+      <div class="ht-topbar-actions">
+        <div class="ht-global-search" *ngIf="!isAdmin">
+          <ion-icon name="search-outline"></ion-icon>
+          <input
+            [(ngModel)]="globalSearch"
+            (keyup.enter)="buscarGlobal()"
+            placeholder="Buscar paciente o documento..."
+            aria-label="Buscar paciente"
+          />
+        </div>
+
+        <button class="ht-icon-btn ht-notif" type="button" title="Detección de intrusos" *ngIf="isAdmin" (click)="irHoneypot()">
+          <ion-icon name="notifications-outline"></ion-icon>
+          <span class="ht-notif-dot" *ngIf="honeypotCount === 0"></span>
+          <span class="ht-notif-count" *ngIf="honeypotCount > 0">{{ honeypotCount > 9 ? '9+' : honeypotCount }}</span>
+        </button>
+
+        <div class="ht-top-user" *ngIf="user">
+          <div class="ht-avatar ht-avatar--sm" style="background: #2e4a70">{{ user.initials }}</div>
+          <div class="ht-top-user-text">
+            <b>{{ user.name }}</b>
+            <span>{{ user.role }}</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="ht-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+
+  <nav class="ht-bottom-nav">
+    <a
+      *ngFor="let item of navItems"
+      [routerLink]="item.route"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: item.exact }"
+    >
+      <ion-icon [name]="item.icon"></ion-icon>
+      <span>{{ item.shortLabel }}</span>
+    </a>
+  </nav>
+</div>

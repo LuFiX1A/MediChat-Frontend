@@ -1,0 +1,109 @@
+<div class="decoy-shell">
+  <header class="decoy-topbar">
+    <div class="decoy-brand">
+      <span class="decoy-mark"><ion-icon name="server-outline"></ion-icon></span>
+      <div>
+        <b>HealthText · Consola interna de respaldos</b>
+        <span>ht-backup-02 · us-east-1 · Nivel 4</span>
+      </div>
+    </div>
+    <span class="decoy-status"><i></i> Nodo en línea</span>
+  </header>
+
+  <div class="decoy-warning">
+    <ion-icon name="warning-outline"></ion-icon>
+    <span>Área restringida. El acceso y las descargas se registran para auditoría.</span>
+  </div>
+
+  <main class="decoy-main">
+    <section class="decoy-login">
+      <div class="login-head">
+        <span class="login-icon"><ion-icon name="lock-closed-outline"></ion-icon></span>
+        <div>
+          <h1>Autenticación de operador</h1>
+          <p>Introduce tus credenciales internas para administrar los respaldos clínicos.</p>
+        </div>
+      </div>
+
+      <form class="login-form" (ngSubmit)="attemptLogin()">
+        <label>
+          Usuario interno
+          <input
+            name="decoyUser"
+            autocomplete="off"
+            [(ngModel)]="user"
+            placeholder="operador@healthtext.local"
+          />
+        </label>
+        <label>
+          Contraseña
+          <input
+            name="decoyPassword"
+            type="password"
+            autocomplete="off"
+            [(ngModel)]="password"
+            placeholder="••••••••••"
+          />
+        </label>
+        <button class="decoy-btn" type="submit">
+          <ion-icon name="log-in-outline"></ion-icon>
+          Autenticar
+        </button>
+      </form>
+
+      <div class="decoy-message" *ngIf="message" role="alert">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <span>{{ message }}</span>
+      </div>
+
+      <p class="decoy-note" *ngIf="triggered">
+        <ion-icon name="bug-outline"></ion-icon>
+        Este acceso activó el honeypot didáctico de HealthText. Revisa la pestaña
+        <b>Detección de intrusos</b> en Administración y seguridad.
+      </p>
+    </section>
+
+    <section class="decoy-panel">
+      <div class="panel-head">
+        <div>
+          <h2>Respaldos disponibles</h2>
+          <p>Réplicas cifradas del expediente clínico y de la base de usuarios.</p>
+        </div>
+        <span class="panel-chip"><ion-icon name="time-outline"></ion-icon> Último: 08 nov · 02:05</span>
+      </div>
+
+      <div class="backup-list">
+        <article class="backup-row" *ngFor="let backup of backups">
+          <span class="backup-icon"><ion-icon name="document-text-outline"></ion-icon></span>
+          <div class="backup-info">
+            <b>{{ backup.name }}</b>
+            <span>{{ backup.date }} · {{ backup.size }}</span>
+          </div>
+          <button class="decoy-btn decoy-btn--ghost" type="button" (click)="downloadBackup(backup)">
+            <ion-icon name="download-outline"></ion-icon>
+            Descargar
+          </button>
+        </article>
+      </div>
+
+      <div class="decoy-actions">
+        <button class="decoy-btn decoy-btn--danger" type="button" (click)="downloadBackup(backups[0])">
+          <ion-icon name="download-outline"></ion-icon>
+          Exportar respaldo completo
+        </button>
+      </div>
+
+      <div class="decoy-meta">
+        <div><span>Nodo</span><b>ht-backup-02</b></div>
+        <div><span>Cifrado</span><b>AES-256</b></div>
+        <div><span>Retención</span><b>35 días</b></div>
+        <div><span>Estado</span><b class="ok">Sincronizado</b></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="decoy-footer">
+    <span><ion-icon name="shield-checkmark-outline"></ion-icon> HealthText Cloud &amp; Smart Record</span>
+    <span>Entorno de demostración académica · ningún dato real está expuesto</span>
+  </footer>
+</div>
