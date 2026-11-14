@@ -1,0 +1,225 @@
+<div class="ht-page patients-page">
+  <div class="ht-page-head">
+    <div>
+      <span class="ht-eyebrow"><ion-icon name="people-outline"></ion-icon> Expediente médico electrónico</span>
+      <h2 class="ht-title">Pacientes y expedientes</h2>
+      <p class="ht-subtitle">
+        Consulta historias clínicas, antecedentes, tratamientos y seguimiento de cada paciente.
+        Toda la información se gestiona con trazabilidad y control de acceso.
+      </p>
+    </div>
+    <div class="ht-actions">
+      <button class="ht-btn ht-btn-primary" type="button" (click)="openNewModal()">
+        <ion-icon name="add-outline"></ion-icon>
+        Nuevo paciente
+      </button>
+    </div>
+  </div>
+
+  <section class="patient-kpis">
+    <div class="kpi">
+      <span class="kpi-icon blue"><ion-icon name="people-outline"></ion-icon></span>
+      <div><b>{{ totalPatients }}</b><span>Pacientes registrados</span></div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon green"><ion-icon name="checkmark-circle-outline"></ion-icon></span>
+      <div><b>{{ activeCount }}</b><span>Pacientes activos</span></div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon amber"><ion-icon name="time-outline"></ion-icon></span>
+      <div><b>{{ followUpCount }}</b><span>En seguimiento</span></div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon red"><ion-icon name="warning-outline"></ion-icon></span>
+      <div><b>{{ highRiskCount }}</b><span>Riesgo alto</span></div>
+    </div>
+  </section>
+
+  <section class="ht-card patients-toolbar">
+    <div class="ht-input-wrap toolbar-search">
+      <ion-icon name="search-outline"></ion-icon>
+      <input
+        class="ht-input"
+        [(ngModel)]="search"
+        placeholder="Buscar por nombre, documento o correo..."
+      />
+    </div>
+
+    <select class="ht-select" [(ngModel)]="riskFilter" aria-label="Filtrar por riesgo">
+      <option value="Todos">Todos los riesgos</option>
+      <option value="Bajo">Riesgo bajo</option>
+      <option value="Medio">Riesgo medio</option>
+      <option value="Alto">Riesgo alto</option>
+    </select>
+
+    <select class="ht-select" [(ngModel)]="statusFilter" aria-label="Filtrar por estado">
+      <option value="Todos">Todos los estados</option>
+      <option value="Activo">Activo</option>
+      <option value="En seguimiento">En seguimiento</option>
+      <option value="Inactivo">Inactivo</option>
+    </select>
+
+    <button class="ht-btn ht-btn-ghost ht-btn-sm" type="button" (click)="clearFilters()">
+      <ion-icon name="refresh-outline"></ion-icon>
+      Limpiar
+    </button>
+
+    <span class="results-count">{{ filteredPatients.length }} resultados</span>
+  </section>
+
+  <section class="ht-card">
+    <div class="ht-card-head">
+      <div>
+        <h3>Directorio de pacientes</h3>
+        <p>Selecciona un paciente para abrir su expediente completo</p>
+      </div>
+      <span class="ht-badge ht-badge--info">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        Acceso auditado
+      </span>
+    </div>
+
+    <div class="ht-table-wrap">
+      <table class="ht-table">
+        <thead>
+          <tr>
+            <th>Paciente</th>
+            <th>Documento</th>
+            <th>Edad / sexo</th>
+            <th>Riesgo</th>
+            <th>Estado</th>
+            <th>Última visita</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let patient of filteredPatients; trackBy: trackById">
+            <td>
+              <div class="ht-person">
+                <div class="ht-avatar" [style.background]="patient.color">{{ getInitials(patient.name) }}</div>
+                <div class="ht-person-text">
+                  <b>{{ patient.name }}</b>
+                  <span>{{ patient.email }}</span>
+                </div>
+              </div>
+            </td>
+            <td class="doc-cell">{{ patient.document }}</td>
+            <td class="soft-cell">{{ patient.age }} años · {{ patient.sex === 'F' ? 'Femenino' : 'Masculino' }}</td>
+            <td><span class="ht-badge" [ngClass]="badge(patient.risk)">{{ patient.risk }}</span></td>
+            <td><span class="ht-badge" [ngClass]="badge(patient.status)">{{ patient.status }}</span></td>
+            <td class="soft-cell">{{ shortDate(patient.lastVisit) }}</td>
+            <td>
+              <div class="row-actions">
+                <a class="ht-btn ht-btn-ghost ht-btn-sm" [routerLink]="['/pacientes', patient.id]">
+                  <ion-icon name="document-text-outline"></ion-icon>
+                  Expediente
+                </a>
+                <a class="ht-icon-btn" [routerLink]="['/consulta', patient.id]" title="Nueva consulta">
+                  <ion-icon name="medkit-outline"></ion-icon>
+                </a>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ht-empty" *ngIf="filteredPatients.length === 0">
+      <ion-icon name="search-outline"></ion-icon>
+      No se encontraron pacientes con los filtros seleccionados.
+    </div>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="showNewModal" (click)="closeModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div>
+        <span class="ht-eyebrow"><ion-icon name="person-outline"></ion-icon> Nuevo registro</span>
+        <h3>Crear expediente de paciente</h3>
+        <p>Los campos marcados con * son obligatorios.</p>
+      </div>
+      <button class="ht-icon-btn" type="button" (click)="closeModal()" aria-label="Cerrar">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="ht-form-grid">
+        <div class="ht-field ht-col-full">
+          <label>Nombre completo *</label>
+          <input class="ht-input" [(ngModel)]="nuevo.name" placeholder="Ej. Laura Martínez" />
+        </div>
+        <div class="ht-field">
+          <label>Documento *</label>
+          <input class="ht-input" [(ngModel)]="nuevo.document" placeholder="CC 1.000.000.000" />
+        </div>
+        <div class="ht-field">
+          <label>Edad *</label>
+          <input class="ht-input" type="number" [(ngModel)]="nuevo.age" min="0" max="120" />
+        </div>
+        <div class="ht-field">
+          <label>Sexo</label>
+          <select class="ht-select" [(ngModel)]="nuevo.sex">
+            <option value="F">Femenino</option>
+            <option value="M">Masculino</option>
+          </select>
+        </div>
+        <div class="ht-field">
+          <label>Tipo de sangre</label>
+          <select class="ht-select" [(ngModel)]="nuevo.bloodType">
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+          </select>
+        </div>
+        <div class="ht-field">
+          <label>Teléfono</label>
+          <input class="ht-input" [(ngModel)]="nuevo.phone" placeholder="+57 300 000 0000" />
+        </div>
+        <div class="ht-field">
+          <label>Correo electrónico</label>
+          <input class="ht-input" type="email" [(ngModel)]="nuevo.email" placeholder="paciente@correo.com" />
+        </div>
+        <div class="ht-field">
+          <label>EPS / Afiliación</label>
+          <input class="ht-input" [(ngModel)]="nuevo.insurance" placeholder="Ej. EPS Sura" />
+        </div>
+        <div class="ht-field">
+          <label>Nivel de riesgo</label>
+          <select class="ht-select" [(ngModel)]="nuevo.risk">
+            <option value="Bajo">Bajo</option>
+            <option value="Medio">Medio</option>
+            <option value="Alto">Alto</option>
+          </select>
+        </div>
+        <div class="ht-field ht-col-full">
+          <label>Antecedentes / diagnósticos</label>
+          <textarea class="ht-textarea" [(ngModel)]="nuevo.conditions" placeholder="Separa cada antecedente con una coma"></textarea>
+        </div>
+        <div class="ht-field ht-col-full">
+          <label>Alergias</label>
+          <input class="ht-input" [(ngModel)]="nuevo.allergies" placeholder="Separa cada alergia con una coma" />
+        </div>
+      </div>
+
+      <div class="modal-error" *ngIf="modalError">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        {{ modalError }}
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="ht-btn ht-btn-ghost" type="button" (click)="closeModal()">Cancelar</button>
+      <button class="ht-btn ht-btn-primary" type="button" (click)="savePatient()">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        Crear expediente
+      </button>
+    </div>
+  </div>
+</div>

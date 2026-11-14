@@ -1,0 +1,206 @@
+<div class="ht-page dashboard-page">
+  <div class="ht-page-head">
+    <div>
+      <span class="ht-eyebrow"><ion-icon name="pulse-outline"></ion-icon> Panel clínico</span>
+      <h2 class="ht-title">{{ greeting }}, {{ userName }}</h2>
+      <p class="ht-subtitle">
+        Este es el resumen de tu jornada del <b>{{ todayLabel }}</b>. Tienes
+        {{ todayAppointments.length }} citas programadas para hoy.
+      </p>
+    </div>
+    <div class="ht-actions">
+      <a class="ht-btn ht-btn-ghost" routerLink="/citas">
+        <ion-icon name="calendar-outline"></ion-icon>
+        Agendar cita
+      </a>
+      <a class="ht-btn ht-btn-primary" routerLink="/consulta">
+        <ion-icon name="add-outline"></ion-icon>
+        Nueva consulta
+      </a>
+    </div>
+  </div>
+
+  <section class="ht-grid-4 stat-grid">
+    <article class="ht-card stat-card" *ngFor="let stat of stats">
+      <div class="stat-top">
+        <div class="stat-icon" [ngClass]="'tone-' + stat.tone">
+          <ion-icon [name]="stat.icon"></ion-icon>
+        </div>
+        <span class="stat-trend">{{ stat.trend }}</span>
+      </div>
+      <div class="stat-value">{{ stat.value }}</div>
+      <div class="stat-label">{{ stat.label }}</div>
+      <div class="stat-detail">{{ stat.detail }}</div>
+    </article>
+  </section>
+
+  <section class="dash-main">
+    <article class="ht-card">
+      <div class="ht-card-head">
+        <div>
+          <h3>Próximas citas</h3>
+          <p>Agenda de los siguientes días</p>
+        </div>
+        <a class="ht-link" routerLink="/citas">
+          Ver calendario
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+        </a>
+      </div>
+
+      <div class="appointment-list">
+        <div class="appointment-row" *ngFor="let appointment of nextAppointments; trackBy: trackById">
+          <div class="appointment-time">
+            <b>{{ appointment.time }}</b>
+            <span>{{ appointmentDay(appointment.date) }}</span>
+          </div>
+          <div class="appointment-main">
+            <div class="ht-person">
+              <div class="ht-avatar ht-avatar--sm" style="background: #2e4a70">
+                {{ getInitials(appointment.patientName) }}
+              </div>
+              <div class="ht-person-text">
+                <b>{{ appointment.patientName }}</b>
+                <span>{{ appointment.specialty }} · {{ appointment.doctor }}</span>
+              </div>
+            </div>
+            <p class="appointment-reason">{{ appointment.reason }}</p>
+          </div>
+          <span class="ht-badge" [ngClass]="badge(appointment.status)">{{ appointment.status }}</span>
+        </div>
+
+        <div class="ht-empty" *ngIf="nextAppointments.length === 0">
+          <ion-icon name="calendar-outline"></ion-icon>
+          No hay citas próximas registradas.
+        </div>
+      </div>
+    </article>
+
+    <article class="ht-card">
+      <div class="ht-card-head">
+        <div>
+          <h3>Consultas recientes</h3>
+          <p>Últimas notas clínicas registradas</p>
+        </div>
+        <a class="ht-link" routerLink="/pacientes">
+          Ver historiales
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+        </a>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-item" *ngFor="let entry of recentConsultations; trackBy: trackById">
+          <span class="timeline-dot" [ngClass]="dotClass(entry.severity)"></span>
+          <div class="timeline-content">
+            <div class="timeline-head">
+              <b>{{ entry.patientName }}</b>
+              <span>{{ entry.date }}</span>
+            </div>
+            <p>{{ entry.reason }} · {{ entry.diagnosis }}</p>
+            <small>{{ entry.doctor }} · {{ entry.specialty }}</small>
+            <a class="ht-link timeline-link" [routerLink]="['/pacientes', entry.patientId]">
+              Ver expediente
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </a>
+          </div>
+        </div>
+
+        <div class="ht-empty" *ngIf="recentConsultations.length === 0">
+          <ion-icon name="document-text-outline"></ion-icon>
+          No hay consultas registradas todavía.
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="dash-bottom">
+    <article class="ht-card">
+      <div class="ht-card-head">
+        <div>
+          <h3>Pacientes en seguimiento</h3>
+          <p>Casos que requieren atención prioritaria</p>
+        </div>
+        <a class="ht-link" routerLink="/pacientes">
+          Ver todos
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+        </a>
+      </div>
+
+      <div class="ht-table-wrap">
+        <table class="ht-table">
+          <thead>
+            <tr>
+              <th>Paciente</th>
+              <th>Riesgo</th>
+              <th>Estado</th>
+              <th>Última visita</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let patient of followUp; trackBy: trackById">
+              <td>
+                <div class="ht-person">
+                  <div class="ht-avatar ht-avatar--sm" [style.background]="patient.color">
+                    {{ getInitials(patient.name) }}
+                  </div>
+                  <div class="ht-person-text">
+                    <b>{{ patient.name }}</b>
+                    <span>{{ patient.document }}</span>
+                  </div>
+                </div>
+              </td>
+              <td><span class="ht-badge" [ngClass]="badge(patient.risk)">{{ patient.risk }}</span></td>
+              <td><span class="ht-badge" [ngClass]="badge(patient.status)">{{ patient.status }}</span></td>
+              <td class="date-cell">{{ shortDate(patient.lastVisit) }}</td>
+              <td>
+                <a class="ht-link" [routerLink]="['/pacientes', patient.id]">
+                  Expediente
+                  <ion-icon name="chevron-forward-outline"></ion-icon>
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+    <article class="ht-card clinical-card">
+      <div class="ht-card-head">
+        <div>
+          <h3>Alertas clínicas</h3>
+          <p>Pacientes que requieren revisión</p>
+        </div>
+        <span class="ht-badge ht-badge--danger">{{ criticalAlerts }} prioritarias</span>
+      </div>
+
+      <div class="alert-list">
+        <div class="alert-item" *ngFor="let alert of clinicalAlerts; trackBy: trackById">
+          <div class="alert-icon" [ngClass]="alert.severity">
+            <ion-icon [name]="alert.severity === 'critical' ? 'warning-outline' : 'alert-circle-outline'"></ion-icon>
+          </div>
+          <div class="alert-text">
+            <b>{{ alert.title }}</b>
+            <p>{{ alert.detail }}</p>
+            <span>{{ alert.source }}</span>
+          </div>
+        </div>
+
+        <div class="ht-empty" *ngIf="clinicalAlerts.length === 0">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          Sin alertas clínicas pendientes.
+        </div>
+      </div>
+
+      <div class="clinical-summary">
+        <div class="layer"><ion-icon name="warning-outline"></ion-icon> Alto riesgo {{ highRiskCount }}</div>
+        <div class="layer"><ion-icon name="people-outline"></ion-icon> Seguimiento {{ followUpCount }}</div>
+        <div class="layer"><ion-icon name="calendar-outline"></ion-icon> Citas hoy {{ todayAppointments.length }}</div>
+        <div class="layer"><ion-icon name="document-text-outline"></ion-icon> Expedientes {{ totalPatients }}</div>
+      </div>
+
+      <a class="ht-btn ht-btn-ghost clinical-btn" routerLink="/pacientes">
+        Ver pacientes en seguimiento
+      </a>
+    </article>
+  </section>
+</div>

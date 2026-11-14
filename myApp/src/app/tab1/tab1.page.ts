@@ -1,5 +1,15 @@
 import { Component, ViewChild, OnInit } from '@angular/core';
-import { IonicModule, IonContent, ToastController, AlertController } from '@ionic/angular';
+import {
+  AlertController,
+  IonButton,
+  IonContent,
+  IonFooter,
+  IonIcon,
+  IonInput,
+  IonItem,
+  IonToolbar,
+  ToastController,
+} from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ChatbotService } from '../services/chatbot';
@@ -15,7 +25,17 @@ import {
   templateUrl: 'tab1.page.html',
   styleUrls: ['tab1.page.scss'],
   standalone: true,
-  imports: [IonicModule, FormsModule, CommonModule],
+  imports: [
+    IonContent,
+    IonFooter,
+    IonToolbar,
+    IonItem,
+    IonInput,
+    IonButton,
+    IonIcon,
+    FormsModule,
+    CommonModule,
+  ],
 })
 export class Tab1Page implements OnInit {
   // CORRECCIÓN: Declaración correcta para que funcione el scroll

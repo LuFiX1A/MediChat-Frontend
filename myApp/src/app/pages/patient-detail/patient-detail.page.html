@@ -1,0 +1,345 @@
+<div class="ht-page patient-detail" *ngIf="patient">
+  <a class="back-link" routerLink="/pacientes">
+    <ion-icon name="chevron-back-outline"></ion-icon>
+    Volver a pacientes
+  </a>
+
+  <section class="canary-banner" *ngIf="isHoneytoken" role="alert">
+    <span class="canary-icon"><ion-icon name="bug-outline"></ion-icon></span>
+    <div>
+      <b>Honeytoken clínico activado</b>
+      <p>
+        Este expediente es un registro canario de seguridad y no corresponde a una persona real.
+        La apertura quedó registrada como evento crítico en
+        <b>Administración y seguridad → Detección de intrusos</b>.
+      </p>
+    </div>
+    <span class="canary-badge">Registro trampa</span>
+  </section>
+
+  <section class="patient-hero ht-card">
+    <div class="hero-main">
+      <div class="ht-avatar ht-avatar--lg" [style.background]="patient.color">
+        {{ getInitials(patient.name) }}
+      </div>
+      <div class="hero-info">
+        <div class="hero-title">
+          <h2>{{ patient.name }}</h2>
+          <span class="ht-badge" [ngClass]="badge(patient.risk)">Riesgo {{ patient.risk }}</span>
+          <span class="ht-badge" [ngClass]="badge(patient.status)">{{ patient.status }}</span>
+        </div>
+        <p class="hero-sub">
+          {{ patient.document }} · {{ patient.age }} años ·
+          {{ patient.sex === 'F' ? 'Femenino' : 'Masculino' }} · {{ patient.bloodType }}
+        </p>
+        <div class="hero-meta">
+          <span><ion-icon name="call-outline"></ion-icon> {{ patient.phone }}</span>
+          <span><ion-icon name="mail-outline"></ion-icon> {{ patient.email }}</span>
+          <span><ion-icon name="briefcase-outline"></ion-icon> {{ patient.insurance }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-actions">
+      <a class="ht-btn ht-btn-ghost" routerLink="/citas" [queryParams]="{ patient: patient.id }">
+        <ion-icon name="calendar-outline"></ion-icon>
+        Agendar cita
+      </a>
+      <a class="ht-btn ht-btn-primary" [routerLink]="['/consulta', patient.id]">
+        <ion-icon name="medkit-outline"></ion-icon>
+        Nueva consulta
+      </a>
+    </div>
+  </section>
+
+  <section class="patient-strip">
+    <div class="strip-item">
+      <span>Edad</span>
+      <b>{{ patient.age }} años</b>
+    </div>
+    <div class="strip-item">
+      <span>Tipo de sangre</span>
+      <b>{{ patient.bloodType }}</b>
+    </div>
+    <div class="strip-item">
+      <span>Última visita</span>
+      <b>{{ shortDate(patient.lastVisit) }}</b>
+    </div>
+    <div class="strip-item">
+      <span>Próxima cita</span>
+      <b *ngIf="nextAppointment">{{ shortDate(nextAppointment.date) }} · {{ nextAppointment.time }}</b>
+      <b *ngIf="!nextAppointment" class="muted">Sin agenda</b>
+    </div>
+    <div class="strip-item">
+      <span>Tratamientos activos</span>
+      <b>{{ activeTreatments }}</b>
+    </div>
+  </section>
+
+  <section class="ht-card detail-card">
+    <div class="ht-tabs">
+      <button
+        class="ht-tab"
+        type="button"
+        *ngFor="let tab of tabs"
+        [class.active]="activeTab === tab.id"
+        (click)="setTab(tab.id)"
+      >
+        <ion-icon [name]="tab.icon"></ion-icon>
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <div class="tab-body" [ngSwitch]="activeTab">
+      <!-- RESUMEN -->
+      <div *ngSwitchCase="'resumen'" class="summary-grid">
+        <div class="summary-col">
+          <article class="subcard">
+            <div class="subcard-head">
+              <h4><ion-icon name="person-outline"></ion-icon> Información de contacto</h4>
+            </div>
+            <div class="info-grid">
+              <div><span>Teléfono</span><b>{{ patient.phone }}</b></div>
+              <div><span>Correo</span><b>{{ patient.email }}</b></div>
+              <div class="full"><span>Dirección</span><b>{{ patient.address }}</b></div>
+              <div><span>EPS / Afiliación</span><b>{{ patient.insurance }}</b></div>
+              <div><span>Documento</span><b>{{ patient.document }}</b></div>
+            </div>
+          </article>
+
+          <article class="subcard">
+            <div class="subcard-head">
+              <h4><ion-icon name="clipboard-outline"></ion-icon> Antecedentes relevantes</h4>
+              <button class="ht-link" type="button" (click)="setTab('antecedentes')">Ver todo</button>
+            </div>
+            <div class="chip-row">
+              <span class="ht-chip" *ngFor="let condition of patient.conditions">{{ condition }}</span>
+              <span class="ht-chip" *ngIf="patient.conditions.length === 0">Sin antecedentes registrados</span>
+            </div>
+            <div class="allergy-alert" *ngIf="patient.allergies.length > 0">
+              <ion-icon name="warning-outline"></ion-icon>
+              <span><b>Alergias:</b> {{ patient.allergies.join(', ') }}</span>
+            </div>
+          </article>
+
+          <article class="subcard">
+            <div class="subcard-head">
+              <h4><ion-icon name="document-text-outline"></ion-icon> Últimas notas clínicas</h4>
+              <button class="ht-link" type="button" (click)="setTab('expediente')">Abrir expediente</button>
+            </div>
+            <div class="mini-note" *ngFor="let consultation of patient.consultations.slice(0, 2); trackBy: trackById">
+              <div class="mini-note-head">
+                <b>{{ consultation.reason }}</b>
+                <span>{{ shortDate(consultation.date) }}</span>
+              </div>
+              <p>{{ consultation.diagnosis }}</p>
+              <small>{{ consultation.doctor }} · {{ consultation.specialty }}</small>
+            </div>
+            <div class="ht-empty" *ngIf="patient.consultations.length === 0">
+              <ion-icon name="document-text-outline"></ion-icon>
+              Aún no hay consultas registradas.
+            </div>
+          </article>
+        </div>
+
+        <div class="summary-col">
+          <article class="subcard">
+            <div class="subcard-head">
+              <h4><ion-icon name="pulse-outline"></ion-icon> Signos vitales</h4>
+              <span class="ht-badge ht-badge--info">{{ shortDate(patient.lastVisit) }}</span>
+            </div>
+            <div class="vitals-grid">
+              <div class="vital"><span>Presión arterial</span><b>{{ patient.vitals.pressure }}</b></div>
+              <div class="vital"><span>Frecuencia cardíaca</span><b>{{ patient.vitals.heartRate }} lpm</b></div>
+              <div class="vital"><span>Temperatura</span><b>{{ patient.vitals.temperature }} °C</b></div>
+              <div class="vital"><span>Peso</span><b>{{ patient.vitals.weight }} kg</b></div>
+              <div class="vital"><span>Talla</span><b>{{ patient.vitals.height }} m</b></div>
+              <div class="vital"><span>IMC</span><b>{{ bmi }}</b></div>
+            </div>
+          </article>
+
+          <article class="subcard next-visit" *ngIf="nextAppointment">
+            <div class="subcard-head">
+              <h4><ion-icon name="calendar-outline"></ion-icon> Próxima cita</h4>
+              <span class="ht-badge" [ngClass]="badge(nextAppointment.status)">{{ nextAppointment.status }}</span>
+            </div>
+            <div class="next-visit-date">
+              <b>{{ shortDate(nextAppointment.date) }}</b>
+              <span>{{ nextAppointment.time }} · {{ nextAppointment.duration }} min</span>
+            </div>
+            <p>{{ nextAppointment.reason }}</p>
+            <small>{{ nextAppointment.specialty }} · {{ nextAppointment.doctor }}</small>
+            <a class="ht-btn ht-btn-ghost ht-btn-sm" routerLink="/citas" [queryParams]="{ patient: patient.id }">
+              Gestionar cita
+            </a>
+          </article>
+
+          <article class="subcard">
+            <div class="subcard-head">
+              <h4><ion-icon name="medkit-outline"></ion-icon> Medicamentos actuales</h4>
+            </div>
+            <ul class="med-list">
+              <li *ngFor="let medication of patient.medications">
+                <ion-icon name="flask-outline"></ion-icon>
+                {{ medication }}
+              </li>
+              <li *ngIf="patient.medications.length === 0" class="muted">Sin medicamentos registrados.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+
+      <!-- ANTECEDENTES -->
+      <div *ngSwitchCase="'antecedentes'" class="ht-grid-2">
+        <article class="subcard">
+          <div class="subcard-head">
+            <h4><ion-icon name="warning-outline"></ion-icon> Alergias</h4>
+            <span class="ht-badge" [ngClass]="patient.allergies.length ? 'ht-badge--danger' : 'ht-badge--success'">
+              {{ patient.allergies.length }} registradas
+            </span>
+          </div>
+          <div class="chip-row" *ngIf="patient.allergies.length > 0">
+            <span class="ht-chip allergy-chip" *ngFor="let allergy of patient.allergies">{{ allergy }}</span>
+          </div>
+          <p class="muted-text" *ngIf="patient.allergies.length === 0">El paciente no registra alergias conocidas.</p>
+        </article>
+
+        <article class="subcard">
+          <div class="subcard-head">
+            <h4><ion-icon name="clipboard-outline"></ion-icon> Diagnósticos crónicos</h4>
+          </div>
+          <div class="chip-row" *ngIf="patient.conditions.length > 0">
+            <span class="ht-chip" *ngFor="let condition of patient.conditions">{{ condition }}</span>
+          </div>
+          <p class="muted-text" *ngIf="patient.conditions.length === 0">Sin diagnósticos crónicos registrados.</p>
+        </article>
+
+        <article class="subcard">
+          <div class="subcard-head">
+            <h4><ion-icon name="medkit-outline"></ion-icon> Medicación habitual</h4>
+          </div>
+          <ul class="med-list">
+            <li *ngFor="let medication of patient.medications">
+              <ion-icon name="flask-outline"></ion-icon>
+              {{ medication }}
+            </li>
+            <li *ngIf="patient.medications.length === 0" class="muted">Sin medicamentos registrados.</li>
+          </ul>
+        </article>
+
+        <article class="subcard">
+          <div class="subcard-head">
+            <h4><ion-icon name="shield-checkmark-outline"></ion-icon> Observaciones clínicas</h4>
+          </div>
+          <p class="muted-text">
+            Información validada por el equipo médico. Los antecedentes se actualizan en cada consulta
+            y quedan registrados en la auditoría del sistema.
+          </p>
+          <div class="chip-row">
+            <span class="ht-chip"><ion-icon name="time-outline"></ion-icon> Última actualización: {{ shortDate(patient.lastVisit) }}</span>
+          </div>
+        </article>
+      </div>
+
+      <!-- EXPEDIENTE -->
+      <div *ngSwitchCase="'expediente'" class="notes-list">
+        <article class="note-card" *ngFor="let consultation of patient.consultations; trackBy: trackById">
+          <div class="note-head">
+            <div>
+              <span class="note-date">{{ longDate(consultation.date) }}</span>
+              <h4>{{ consultation.reason }}</h4>
+              <p>{{ consultation.doctor }} · {{ consultation.specialty }}</p>
+            </div>
+            <span class="ht-badge" [ngClass]="badge(consultation.status)">{{ consultation.status }}</span>
+          </div>
+
+          <div class="note-grid">
+            <div>
+              <span class="note-label">Síntomas</span>
+              <p>{{ consultation.symptoms }}</p>
+            </div>
+            <div>
+              <span class="note-label">Notas clínicas</span>
+              <p>{{ consultation.notes }}</p>
+            </div>
+            <div>
+              <span class="note-label">Diagnóstico</span>
+              <p class="diagnosis-text">{{ consultation.diagnosis }}</p>
+            </div>
+            <div>
+              <span class="note-label">Tratamiento</span>
+              <p>{{ consultation.treatment }}</p>
+            </div>
+          </div>
+
+          <div class="note-foot">
+            <span class="ht-badge" [ngClass]="badge(consultation.risk)">Riesgo {{ consultation.risk }}</span>
+            <span class="note-id">ID: {{ consultation.id }}</span>
+          </div>
+        </article>
+
+        <div class="ht-empty" *ngIf="patient.consultations.length === 0">
+          <ion-icon name="document-text-outline"></ion-icon>
+          El expediente aún no tiene notas clínicas.
+        </div>
+      </div>
+
+      <!-- HISTORIAL -->
+      <div *ngSwitchCase="'historial'">
+        <div class="ht-table-wrap">
+          <table class="ht-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Motivo</th>
+                <th>Especialidad</th>
+                <th>Diagnóstico</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let consultation of patient.consultations; trackBy: trackById">
+                <td class="nowrap">{{ shortDate(consultation.date) }}</td>
+                <td>{{ consultation.reason }}</td>
+                <td class="nowrap">{{ consultation.specialty }}</td>
+                <td>{{ consultation.diagnosis }}</td>
+                <td><span class="ht-badge" [ngClass]="badge(consultation.status)">{{ consultation.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ht-empty" *ngIf="patient.consultations.length === 0">
+          <ion-icon name="time-outline"></ion-icon>
+          No hay consultas registradas en el historial.
+        </div>
+      </div>
+
+      <!-- TRATAMIENTOS -->
+      <div *ngSwitchCase="'tratamientos'" class="treatment-grid">
+        <article class="treatment-card" *ngFor="let consultation of patient.consultations; trackBy: trackById">
+          <div class="treatment-head">
+            <div class="treatment-icon"><ion-icon name="medkit-outline"></ion-icon></div>
+            <div class="treatment-title">
+              <b>{{ consultation.diagnosis }}</b>
+              <span>{{ shortDate(consultation.date) }} · {{ consultation.specialty }}</span>
+            </div>
+            <span class="ht-badge" [ngClass]="badge(consultation.status)">{{ consultation.status }}</span>
+          </div>
+          <p class="treatment-plan">{{ consultation.treatment }}</p>
+          <div class="treatment-foot">
+            <span><ion-icon name="person-outline"></ion-icon> {{ consultation.doctor }}</span>
+            <button class="ht-link" type="button" (click)="setTab('expediente')">
+              Ver nota clínica
+              <ion-icon name="arrow-forward-outline"></ion-icon>
+            </button>
+          </div>
+        </article>
+
+        <div class="ht-empty" *ngIf="patient.consultations.length === 0">
+          <ion-icon name="medkit-outline"></ion-icon>
+          No hay tratamientos registrados.
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
