@@ -1,21 +1,20 @@
-import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, catchError, map, of, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { SessionUser, UserRole } from './models';
 import { initials } from './format';
 
-interface DemoAccount {
-  email: string;
-  password: string;
+interface ApiUser {
+  id: string;
   name: string;
+  email: string;
   role: UserRole;
+  specialty?: string | null;
 }
 
-export interface RegisteredAccount {
-  name: string;
-  email: string;
-  password: string;
-  role: UserRole;
-  color: string;
-  createdAt: string;
+interface ExistsResponse {
+  exists: boolean;
 }
 
 export interface RegisteredAccountView {
@@ -25,26 +24,13 @@ export interface RegisteredAccountView {
   color: string;
 }
 
-const DEMO_ACCOUNTS: DemoAccount[] = [
-  {
-    email: 'doctor@healthtext.com',
-    password: 'demo1234',
-    name: 'Dra. Valentina Ortiz',
-    role: 'Médico',
-  },
-  {
-    email: 'admin@healthtext.com',
-    password: 'demo1234',
-    name: 'Sebastián Mejía',
-    role: 'Administrador',
-  },
-];
-
-const REGISTERED_STORAGE_KEY = 'ht_accounts';
 const SESSION_STORAGE_KEY = 'ht_session';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = environment.apiUrl;
+
   current(): SessionUser | null {
     try {
       const raw = localStorage.getItem(SESSION_STORAGE_KEY);
@@ -58,109 +44,65 @@ export class AuthService {
     return this.current() !== null;
   }
 
-  login(email: string, password: string): SessionUser | null {
-    const normalized = email.trim().toLowerCase();
-    const demo = DEMO_ACCOUNTS.find(
-      (item) => item.email === normalized && item.password === password,
+  /** Valida credenciales contra users de Supabase a través de POST /login. */
+  login(email: string, password: string): Observable<SessionUser | null> {
+    return this.http.post<ApiUser>(`${this.apiUrl}/login`, { email, password }).pipe(
+      map((user) => this.toSession(user)),
+      tap((session) => localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))),
+      catchError(() => of(null)),
     );
-    const registered = demo
-      ? undefined
-      : this.loadRegisteredAccounts().find(
-          (item) => item.email.toLowerCase() === normalized && item.password === password,
-        );
-
-    const account = demo ?? registered;
-    if (!account) {
-      return null;
-    }
-
-    const session: SessionUser = {
-      name: account.name,
-      email: normalized,
-      role: account.role,
-      initials: initials(account.name),
-    };
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-    return session;
   }
 
-  isEmailTaken(email: string): boolean {
+  /** Consulta al backend si el correo ya está registrado en Supabase. */
+  isEmailTaken(email: string): Observable<boolean> {
+    return this.http
+      .get<ExistsResponse>(`${this.apiUrl}/users/exists`, {
+        params: { email: email.trim().toLowerCase() },
+      })
+      .pipe(
+        map((response) => response.exists),
+        catchError(() => of(false)),
+      );
+  }
+
+  /** Crea la cuenta en users de Supabase mediante POST /register. */
+  register(
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole,
+  ): Observable<SessionUser | null> {
     const normalized = email.trim().toLowerCase();
-    const demoExists = DEMO_ACCOUNTS.some((item) => item.email === normalized);
-    const registeredExists = this.loadRegisteredAccounts().some(
-      (item) => item.email.toLowerCase() === normalized,
-    );
-    return demoExists || registeredExists;
+    return this.http
+      .post<ApiUser>(`${this.apiUrl}/register`, {
+        name: name.trim(),
+        email: normalized,
+        password,
+        role,
+        color: this.colorFor(normalized),
+      })
+      .pipe(
+        map((user) => this.toSession(user)),
+        catchError(() => of(null)),
+      );
   }
 
-  /**
-   * Registro didáctico: la cuenta se guarda únicamente en localStorage de este
-   * navegador. No apto para producción ni para contraseñas reales.
-   */
-  register(name: string, email: string, password: string, role: UserRole): SessionUser | null {
-    const normalized = email.trim().toLowerCase();
-    if (this.isEmailTaken(normalized)) {
-      return null;
-    }
-
-    const account: RegisteredAccount = {
-      name: name.trim(),
-      email: normalized,
-      password,
-      role,
-      color: this.colorFor(normalized),
-      createdAt: new Date().toISOString(),
-    };
-
-    const accounts = [...this.loadRegisteredAccounts(), account];
-    try {
-      localStorage.setItem(REGISTERED_STORAGE_KEY, JSON.stringify(accounts));
-    } catch {
-      return null;
-    }
-
-    return {
-      name: account.name,
-      email: account.email,
-      role: account.role,
-      initials: initials(account.name),
-    };
-  }
-
+  /** Las cuentas ya viven en Supabase; se conserva por compatibilidad con DataService. */
   registeredUsers(): RegisteredAccountView[] {
-    return this.loadRegisteredAccounts().map((account) => ({
-      name: account.name,
-      email: account.email,
-      role: account.role,
-      color: account.color,
-    }));
+    return [];
   }
 
   logout(): void {
     localStorage.removeItem(SESSION_STORAGE_KEY);
   }
 
-  private loadRegisteredAccounts(): RegisteredAccount[] {
-    try {
-      const raw = localStorage.getItem(REGISTERED_STORAGE_KEY);
-      if (!raw) {
-        return [];
-      }
-      const parsed = JSON.parse(raw) as unknown;
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-      return (parsed as RegisteredAccount[]).filter(
-        (account) =>
-          account &&
-          typeof account.name === 'string' &&
-          typeof account.email === 'string' &&
-          typeof account.password === 'string' &&
-          typeof account.role === 'string',
-      );
-    } catch {
-      return [];
-    }
+  private toSession(user: ApiUser): SessionUser {
+    return {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      initials: initials(user.name),
+    };
   }
 
   private colorFor(seed: string): string {

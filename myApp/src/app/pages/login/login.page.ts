@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { UserRole } from '../../core/models';
 
@@ -66,7 +67,7 @@ export class LoginPage implements OnInit {
     this.success = '';
   }
 
-  submit(): void {
+  async submit(): Promise<void> {
     this.error = '';
     this.success = '';
 
@@ -82,18 +83,17 @@ export class LoginPage implements OnInit {
 
     this.loading = true;
 
-    setTimeout(() => {
-      const session = this.auth.login(this.email, this.password);
-      if (session) {
-        this.router.navigateByUrl(session.role === 'Administrador' ? '/administracion' : '/dashboard');
-        return;
-      }
-      this.error = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
-      this.loading = false;
-    }, 550);
+    const session = await firstValueFrom(this.auth.login(this.email, this.password));
+    this.loading = false;
+
+    if (session) {
+      this.router.navigateByUrl(session.role === 'Administrador' ? '/administracion' : '/dashboard');
+      return;
+    }
+    this.error = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
   }
 
-  submitRegister(): void {
+  async submitRegister(): Promise<void> {
     this.registerError = '';
 
     const name = this.registerName.trim();
@@ -119,38 +119,33 @@ export class LoginPage implements OnInit {
       return;
     }
 
-    if (this.auth.isEmailTaken(email)) {
+    if (await firstValueFrom(this.auth.isEmailTaken(email))) {
       this.registerError = 'Ya existe una cuenta registrada con ese correo.';
       return;
     }
 
     this.registerLoading = true;
 
-    setTimeout(() => {
-      const session = this.auth.register(
-        name,
-        email,
-        this.registerPassword,
-        this.registerRole,
-      );
+    const session = await firstValueFrom(
+      this.auth.register(name, email, this.registerPassword, this.registerRole),
+    );
 
-      this.registerLoading = false;
+    this.registerLoading = false;
 
-      if (!session) {
-        this.registerError = 'No se pudo crear la cuenta. Intenta de nuevo.';
-        return;
-      }
+    if (!session) {
+      this.registerError = 'No se pudo crear la cuenta. Intenta de nuevo.';
+      return;
+    }
 
-      this.email = session.email;
-      this.password = '';
-      this.error = '';
-      this.success = `Cuenta creada para ${session.name}. Ya puedes iniciar sesión con tu contraseña.`;
-      this.registerName = '';
-      this.registerEmail = '';
-      this.registerPassword = '';
-      this.registerConfirm = '';
-      this.registerRole = 'Médico';
-      this.mode = 'login';
-    }, 600);
+    this.email = session.email;
+    this.password = '';
+    this.error = '';
+    this.success = `Cuenta creada para ${session.name}. Ya puedes iniciar sesión con tu contraseña.`;
+    this.registerName = '';
+    this.registerEmail = '';
+    this.registerPassword = '';
+    this.registerConfirm = '';
+    this.registerRole = 'Médico';
+    this.mode = 'login';
   }
 }
