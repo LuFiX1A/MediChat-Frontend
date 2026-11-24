@@ -166,6 +166,7 @@ export class ConsultationPage implements OnInit {
     if (this.consulta.weight > 0) {
       patient.vitals.weight = this.consulta.weight;
     }
+    this.data.updateVitals(patient.id, patient.vitals);
 
     this.data.log(
       'Consulta creada',

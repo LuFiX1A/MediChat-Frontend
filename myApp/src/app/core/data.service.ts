@@ -1,4 +1,7 @@
-import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { catchError, forkJoin, map, of } from 'rxjs';
+import { environment } from '../../environments/environment';
 import {
   Appointment,
   AppointmentStatus,
@@ -8,29 +11,201 @@ import {
   HoneypotEvent,
   HoneypotEventType,
   Patient,
+  PatientStatus,
+  RiskLevel,
+  Sex,
   SystemUser,
+  UserRole,
   UserStatus,
+  VitalSigns,
 } from './models';
-import {
-  HONEYTOKEN_ID,
-  HONEYTOKEN_PATIENT,
-  isoDate,
-  MOCK_APPOINTMENTS,
-  MOCK_AUDIT,
-  MOCK_PATIENTS,
-  MOCK_USERS,
-} from './mock-data';
+import { HONEYTOKEN_ID, HONEYTOKEN_PATIENT, isoDate } from './mock-data';
 import { todayISO } from './format';
 import { AuthService } from './auth.service';
 
 const HONEYPOT_STORAGE_KEY = 'ht_honeypot_events';
 
+interface PgPatient {
+  id: string;
+  name: string;
+  age: number;
+  sex: Sex;
+  document: string;
+  birth_date: string;
+  blood_type: string;
+  phone: string;
+  email: string;
+  address: string;
+  insurance: string;
+  last_visit: string;
+  status: PatientStatus;
+  risk: RiskLevel;
+  color: string;
+}
+
+interface VitalRow {
+  pressure: string;
+  heart_rate: number;
+  temperature: number;
+  weight: number;
+  height: number;
+}
+
+interface MedicalRecordDoc {
+  allergies?: string[];
+  conditions?: string[];
+  medications?: string[];
+  consultations?: Consultation[];
+}
+
+interface PgAppointment {
+  id: string;
+  patient_id: string;
+  patient_name: string;
+  doctor: string;
+  specialty: string;
+  date: string;
+  time: string;
+  duration: number;
+  reason: string;
+  status: AppointmentStatus;
+}
+
+interface ApiUserRow {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  last_access: string;
+  color: string;
+}
+
+interface AuditRow {
+  id: string;
+  date: string;
+  time: string;
+  user_name: string;
+  action: string;
+  module: string;
+  detail: string;
+  ip: string;
+  severity: AuditSeverity;
+}
+
+interface HoneypotRow {
+  id: string;
+  timestamp: string;
+  type: HoneypotEventType;
+  severity: AuditSeverity;
+  route: string;
+  detail: string;
+  user_name: string;
+  role: string;
+  origin: string;
+  user_agent?: string;
+  attempted_user?: string;
+}
+
+function mapPatient(row: PgPatient, vital?: VitalRow, record?: MedicalRecordDoc | null): Patient {
+  return {
+    id: row.id,
+    name: row.name,
+    age: row.age,
+    sex: row.sex,
+    document: row.document,
+    birthDate: row.birth_date,
+    bloodType: row.blood_type,
+    phone: row.phone,
+    email: row.email,
+    address: row.address,
+    insurance: row.insurance,
+    lastVisit: row.last_visit,
+    status: row.status,
+    risk: row.risk,
+    color: row.color,
+    allergies: record?.allergies ?? [],
+    conditions: record?.conditions ?? [],
+    medications: record?.medications ?? [],
+    vitals: vital
+      ? {
+          pressure: vital.pressure,
+          heartRate: vital.heart_rate,
+          temperature: vital.temperature,
+          weight: vital.weight,
+          height: vital.height,
+        }
+      : { pressure: '—', heartRate: 0, temperature: 0, weight: 0, height: 0 },
+    consultations: record?.consultations ?? [],
+  };
+}
+
+function mapAppointment(row: PgAppointment): Appointment {
+  return {
+    id: row.id,
+    patientId: row.patient_id,
+    patientName: row.patient_name,
+    date: row.date,
+    time: row.time,
+    duration: row.duration,
+    specialty: row.specialty,
+    doctor: row.doctor,
+    reason: row.reason,
+    status: row.status,
+  };
+}
+
+function mapUser(row: ApiUserRow): SystemUser {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: row.role,
+    status: row.status,
+    lastAccess: row.last_access,
+    color: row.color,
+  };
+}
+
+function mapAudit(row: AuditRow): AuditEntry {
+  return {
+    id: row.id,
+    date: row.date,
+    time: row.time,
+    user: row.user_name,
+    action: row.action,
+    module: row.module,
+    detail: row.detail,
+    ip: row.ip,
+    severity: row.severity,
+  };
+}
+
+function mapHoneypot(row: HoneypotRow): HoneypotEvent {
+  return {
+    id: row.id,
+    timestamp: row.timestamp,
+    type: row.type,
+    severity: row.severity,
+    route: row.route,
+    detail: row.detail,
+    user: row.user_name,
+    role: row.role,
+    origin: row.origin,
+    userAgent: row.user_agent ?? 'Agente desconocido',
+    attemptedUser: row.attempted_user,
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class DataService {
-  patients: Patient[] = JSON.parse(JSON.stringify(MOCK_PATIENTS)) as Patient[];
-  appointments: Appointment[] = JSON.parse(JSON.stringify(MOCK_APPOINTMENTS)) as Appointment[];
-  users: SystemUser[] = JSON.parse(JSON.stringify(MOCK_USERS)) as SystemUser[];
-  auditLog: AuditEntry[] = JSON.parse(JSON.stringify(MOCK_AUDIT)) as AuditEntry[];
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = environment.apiUrl;
+
+  patients: Patient[] = [];
+  appointments: Appointment[] = [];
+  users: SystemUser[] = [];
+  auditLog: AuditEntry[] = [];
 
   readonly honeytokenId = HONEYTOKEN_ID;
   readonly honeytoken: Patient = JSON.parse(JSON.stringify(HONEYTOKEN_PATIENT)) as Patient;
@@ -39,31 +214,42 @@ export class DataService {
   private sequence = 100;
 
   constructor(private auth: AuthService) {
-    this.mergeRegisteredUsers();
+    this.loadFromApi();
   }
 
-  private mergeRegisteredUsers(): void {
-    const registered = this.auth.registeredUsers();
-    if (registered.length === 0) {
-      return;
-    }
+  private loadFromApi(): void {
+    this.http.get<PgPatient[]>(`${this.apiUrl}/patients`).subscribe((rows) => {
+      if (rows.length === 0) {
+        this.patients = [];
+        return;
+      }
+      forkJoin(
+        rows.map((row) =>
+          forkJoin({
+            vitals: this.http
+              .get<VitalRow[]>(`${this.apiUrl}/patients/${row.id}/vitals`)
+              .pipe(catchError(() => of([]))),
+            record: this.http
+              .get<MedicalRecordDoc>(`${this.apiUrl}/medical-records/${row.id}`)
+              .pipe(catchError(() => of(null))),
+          }).pipe(map(({ vitals, record }) => mapPatient(row, vitals[0], record))),
+        ),
+      ).subscribe((lista) => (this.patients = lista));
+    });
 
-    const known = new Set(this.users.map((user) => user.email.toLowerCase()));
-    const additions: SystemUser[] = registered
-      .filter((account) => !known.has(account.email.toLowerCase()))
-      .map((account) => ({
-        id: `u-reg-${account.email.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-        name: account.name,
-        email: account.email,
-        role: account.role,
-        status: 'Activo',
-        lastAccess: 'Registro reciente',
-        color: account.color || '#2f9cc9',
-      }));
+    this.http
+      .get<PgAppointment[]>(`${this.apiUrl}/appointments`)
+      .subscribe((rows) => (this.appointments = rows.map(mapAppointment)));
 
-    if (additions.length > 0) {
-      this.users = [...additions, ...this.users];
-    }
+    this.http
+      .get<ApiUserRow[]>(`${this.apiUrl}/users`)
+      .subscribe((rows) => (this.users = rows.map(mapUser)));
+
+    this.http
+      .get<AuditRow[]>(`${this.apiUrl}/audit-logs`)
+      .subscribe((rows) => (this.auditLog = rows.map(mapAudit)));
+
+    this.refreshHoneypot();
   }
 
   getPatient(id: string): Patient | undefined {
@@ -89,6 +275,37 @@ export class DataService {
       consultations: patient.consultations ?? [],
     };
     this.patients = [created, ...this.patients];
+
+    this.http
+      .post(`${this.apiUrl}/patients`, {
+        id: created.id,
+        name: created.name,
+        age: created.age,
+        sex: created.sex,
+        document: created.document,
+        birth_date: created.birthDate || todayISO(),
+        blood_type: created.bloodType,
+        phone: created.phone,
+        email: created.email,
+        address: created.address,
+        insurance: created.insurance,
+        last_visit: created.lastVisit,
+        status: created.status,
+        risk: created.risk,
+        color: created.color,
+        allergies: created.allergies,
+        conditions: created.conditions,
+        medications: created.medications,
+        vitals: {
+          pressure: created.vitals.pressure,
+          heart_rate: created.vitals.heartRate,
+          temperature: created.vitals.temperature,
+          weight: created.vitals.weight,
+          height: created.vitals.height,
+        },
+      })
+      .subscribe();
+
     return created;
   }
 
@@ -101,12 +318,48 @@ export class DataService {
     patient.consultations = [consultation, ...patient.consultations];
     patient.lastVisit = consultation.date;
     patient.status = consultation.status === 'Finalizada' ? patient.status : 'En seguimiento';
+
+    this.http.post(`${this.apiUrl}/consultations/${patientId}`, consultation).subscribe();
     return consultation;
+  }
+
+  updateVitals(patientId: string, vitals: VitalSigns): void {
+    const patient = this.getPatient(patientId);
+    if (patient) {
+      patient.vitals = { ...vitals };
+    }
+    this.http
+      .patch(`${this.apiUrl}/patients/${patientId}/vitals`, {
+        pressure: vitals.pressure,
+        heart_rate: vitals.heartRate,
+        temperature: vitals.temperature,
+        weight: vitals.weight,
+        height: vitals.height,
+      })
+      .subscribe();
   }
 
   addAppointment(data: Omit<Appointment, 'id'>): Appointment {
     const appointment: Appointment = { ...data, id: this.nextId('a') };
     this.appointments = [...this.appointments, appointment];
+
+    this.http
+      .post(`${this.apiUrl}/appointments`, {
+        id: appointment.id,
+        patient_id: appointment.patientId,
+        patient_name: appointment.patientName,
+        doctor_id: null,
+        doctor: appointment.doctor,
+        specialty: appointment.specialty,
+        date: appointment.date,
+        time: appointment.time,
+        duration: appointment.duration,
+        reason: appointment.reason,
+        status: appointment.status,
+        priority_score: 1,
+      })
+      .subscribe();
+
     return appointment;
   }
 
@@ -116,6 +369,24 @@ export class DataService {
       return undefined;
     }
     Object.assign(appointment, changes);
+
+    this.http
+      .patch(`${this.apiUrl}/appointments/${id}`, {
+        id,
+        patient_id: appointment.patientId,
+        patient_name: appointment.patientName,
+        doctor_id: null,
+        doctor: appointment.doctor,
+        specialty: appointment.specialty,
+        date: appointment.date,
+        time: appointment.time,
+        duration: appointment.duration,
+        reason: appointment.reason,
+        status: appointment.status,
+        priority_score: 1,
+      })
+      .subscribe();
+
     return appointment;
   }
 
@@ -142,7 +413,12 @@ export class DataService {
   getUpcomingAppointments(limit = 6): Appointment[] {
     const today = todayISO();
     return this.appointments
-      .filter((appointment) => appointment.date >= today && appointment.status !== 'Cancelada' && appointment.status !== 'Completada')
+      .filter(
+        (appointment) =>
+          appointment.date >= today &&
+          appointment.status !== 'Cancelada' &&
+          appointment.status !== 'Completada',
+      )
       .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
       .slice(0, limit);
   }
@@ -150,6 +426,19 @@ export class DataService {
   addUser(user: Omit<SystemUser, 'id'>): SystemUser {
     const created: SystemUser = { ...user, id: this.nextId('u') };
     this.users = [created, ...this.users];
+
+    this.http
+      .post(`${this.apiUrl}/users`, {
+        id: created.id,
+        name: created.name,
+        email: created.email,
+        role: created.role,
+        status: created.status,
+        color: created.color,
+        password_hash: 'demo1234',
+      })
+      .subscribe();
+
     return created;
   }
 
@@ -158,8 +447,9 @@ export class DataService {
     if (!user) {
       return undefined;
     }
-    const nextStatus: UserStatus = user.status === 'Activo' ? 'Inactivo' : 'Activo';
-    user.status = nextStatus;
+    user.status = user.status === 'Activo' ? 'Inactivo' : 'Activo';
+
+    this.http.patch(`${this.apiUrl}/users/${id}/status`, { status: user.status }).subscribe();
     return user;
   }
 
@@ -184,12 +474,25 @@ export class DataService {
       severity,
     };
     this.auditLog = [entry, ...this.auditLog];
+
+    this.http
+      .post(`${this.apiUrl}/audit-logs`, {
+        id: entry.id,
+        date: entry.date,
+        time: entry.time,
+        user_name: entry.user,
+        action: entry.action,
+        module: entry.module,
+        detail: entry.detail,
+        ip: entry.ip,
+        severity: entry.severity,
+      })
+      .subscribe();
   }
 
   /**
-   * Registra un evento del honeypot didáctico. Los eventos se guardan en
-   * localStorage (clave `ht_honeypot_events`) para sobrevivir recargas y
-   * compartirse entre pestañas del mismo navegador.
+   * Registra un evento del honeypot didáctico. Se guarda en localStorage para
+   * respuesta inmediata y se envía a Supabase para que todo el equipo lo vea.
    */
   recordHoneypot(
     type: HoneypotEventType,
@@ -218,6 +521,23 @@ export class DataService {
 
     this.honeypotLog = [event, ...this.honeypotLog];
     this.persistHoneypotLog();
+
+    this.http
+      .post(`${this.apiUrl}/honeypot-events`, {
+        id: event.id,
+        timestamp: event.timestamp,
+        type: event.type,
+        severity: event.severity,
+        route: event.route,
+        detail: event.detail,
+        user_name: event.user,
+        role: event.role,
+        origin: event.origin,
+        user_agent: event.userAgent,
+        attempted_user: event.attemptedUser ?? null,
+      })
+      .subscribe();
+
     this.log(
       'Intruso detectado en honeypot',
       'Seguridad',
@@ -229,7 +549,14 @@ export class DataService {
   }
 
   refreshHoneypot(): void {
-    this.honeypotLog = this.loadHoneypotLog();
+    this.http.get<HoneypotRow[]>(`${this.apiUrl}/honeypot-events`).subscribe((rows) => {
+      const remotos = rows.map(mapHoneypot);
+      const ids = new Set(remotos.map((event) => event.id));
+      const locales = this.loadHoneypotLog().filter((event) => !ids.has(event.id));
+      this.honeypotLog = [...remotos, ...locales].sort((a, b) =>
+        b.timestamp.localeCompare(a.timestamp),
+      );
+    });
   }
 
   clearHoneypotLog(): void {

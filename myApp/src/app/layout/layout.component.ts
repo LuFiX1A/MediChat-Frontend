@@ -54,9 +54,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   private routerSub?: Subscription;
 
-  // Guards de rol desactivados temporalmente para facilitar las pruebas del equipo.
-  // Cambiar a true (y reactivar los canActivate de app.routes.ts) al final.
-  private readonly guardsEnabled = false;
+  // Guards de rol activados: authGuard/adminGuard en app.routes.ts.
+  private readonly guardsEnabled = true;
 
   constructor(
     private router: Router,
