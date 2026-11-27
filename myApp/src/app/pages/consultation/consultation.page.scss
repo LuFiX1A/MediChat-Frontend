@@ -1,0 +1,285 @@
+.consultation-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.success-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-radius: 14px;
+  background: var(--ht-success-bg);
+  border: 1px solid #bce9d7;
+  color: #087a59;
+
+  > ion-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  div {
+    flex: 1;
+    min-width: 0;
+
+    b {
+      display: block;
+      font-size: 0.82rem;
+    }
+
+    span {
+      display: block;
+      font-size: 0.72rem;
+      color: #2f7f67;
+      margin-top: 2px;
+    }
+  }
+}
+
+.consult-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-card {
+  overflow: hidden;
+}
+
+.form-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 17px 20px;
+  border-bottom: 1px solid var(--ht-border);
+  background: #fbfdff;
+
+  .step {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--ht-cyan), #3b82f6);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 900;
+    flex-shrink: 0;
+  }
+
+  div {
+    flex: 1;
+    min-width: 0;
+  }
+
+  h3 {
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: var(--ht-navy);
+  }
+
+  p {
+    font-size: 0.71rem;
+    color: var(--ht-muted);
+    margin-top: 3px;
+  }
+}
+
+.form-card-body {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.patient-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 13px;
+  border-radius: 12px;
+  background: #f4f9fd;
+  border: 1px solid #e4eef6;
+
+  .preview-info {
+    flex: 1;
+    min-width: 0;
+
+    .preview-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+
+      b {
+        font-size: 0.82rem;
+        color: var(--ht-navy);
+      }
+    }
+
+    p {
+      font-size: 0.7rem;
+      color: var(--ht-muted);
+      margin-top: 4px;
+    }
+  }
+
+  .preview-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .ht-link {
+    flex-shrink: 0;
+  }
+}
+
+.symptom-chips {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+
+  .symptom-label {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #8fa3b8;
+    margin-right: 2px;
+  }
+
+  .ht-chip {
+    border: 1px dashed #cfe1ee;
+    background: #fff;
+    font-size: 0.68rem;
+    padding: 5px 9px;
+
+    ion-icon {
+      font-size: 0.75rem;
+      color: var(--ht-cyan-deep);
+    }
+
+    &:hover {
+      border-style: solid;
+      background: #f2fbff;
+    }
+  }
+}
+
+.vitals-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid #edf3f8;
+  margin-top: 4px;
+}
+
+.side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 96px;
+}
+
+.tips-card .tips-body {
+  padding: 0 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+
+  .tip-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    background: #f1f8fd;
+    color: var(--ht-cyan-deep);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  p {
+    font-size: 0.7rem;
+    line-height: 1.45;
+    color: var(--ht-muted);
+
+    b {
+      color: #405b76;
+    }
+  }
+}
+
+@media (max-width: 1120px) {
+  .consult-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .side-column {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .vitals-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .success-banner {
+    flex-wrap: wrap;
+
+    .ht-btn {
+      width: 100%;
+    }
+  }
+
+  .form-card-head {
+    padding: 15px 16px;
+  }
+
+  .form-card-body {
+    padding: 16px;
+  }
+
+  .patient-preview {
+    flex-wrap: wrap;
+
+    .ht-link {
+      width: 100%;
+    }
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+
+    .ht-btn {
+      width: 100%;
+    }
+  }
+}

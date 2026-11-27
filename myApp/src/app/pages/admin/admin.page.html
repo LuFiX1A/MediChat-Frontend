@@ -1,0 +1,444 @@
+<div class="ht-page admin-page">
+  <div class="ht-page-head">
+    <div>
+      <span class="ht-eyebrow"><ion-icon name="shield-checkmark-outline"></ion-icon> Gobierno clínico y seguridad</span>
+      <h2 class="ht-title">Administración y seguridad</h2>
+      <p class="ht-subtitle">
+        Gestiona personal médico con cédula profesional, pacientes, roles y privilegios,
+        registros de auditoría y el plan de seguridad en 7 capas.
+      </p>
+    </div>
+    <div class="ht-actions">
+      <button class="ht-btn ht-btn-primary" type="button" (click)="openUserModal()">
+        <ion-icon name="add-outline"></ion-icon>
+        Nuevo personal / usuario
+      </button>
+    </div>
+  </div>
+
+  <div class="saved-banner" *ngIf="userSavedMessage">
+    <ion-icon name="checkmark-circle-outline"></ion-icon>
+    <span>{{ userSavedMessage }}</span>
+    <button type="button" class="banner-close" (click)="userSavedMessage = ''" aria-label="Cerrar">
+      <ion-icon name="close-outline"></ion-icon>
+    </button>
+  </div>
+
+  <section class="admin-tabs ht-card">
+    <div class="ht-tabs">
+      <button class="ht-tab" type="button" *ngFor="let tab of tabs" [class.active]="activeTab === tab.id"
+        (click)="setTab(tab.id)">
+        <ion-icon [name]="tab.icon"></ion-icon>
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <!-- USUARIOS -->
+    <div class="tab-panel" *ngIf="activeTab === 'usuarios'">
+      <div class="panel-head">
+        <div>
+          <h3>Gestión de usuarios y personal médico</h3>
+          <p>Cuentas con acceso al expediente médico electrónico, especialidad y cédula profesional.</p>
+        </div>
+        <button class="ht-btn ht-btn-ghost ht-btn-sm" type="button" (click)="openUserModal()">
+          <ion-icon name="add-outline"></ion-icon>
+          Dar de alta usuario
+        </button>
+      </div>
+
+      <div class="user-stats">
+        <div class="mini-stat">
+          <span class="mini-icon blue"><ion-icon name="people-outline"></ion-icon></span>
+          <div><b>{{ users.length }}</b><span>Usuarios registrados</span></div>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-icon green"><ion-icon name="checkmark-circle-outline"></ion-icon></span>
+          <div><b>{{ activeUsers }}</b><span>Cuentas activas</span></div>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-icon amber"><ion-icon name="key-outline"></ion-icon></span>
+          <div><b>{{ adminUsers }}</b><span>Administradores</span></div>
+        </div>
+      </div>
+
+      <div class="panel-toolbar">
+        <div class="ht-input-wrap panel-search">
+          <ion-icon name="search-outline"></ion-icon>
+          <input class="ht-input" [(ngModel)]="userSearch"
+            placeholder="Buscar por nombre, correo, especialidad o cédula..." />
+        </div>
+        <select class="ht-select" [(ngModel)]="roleFilter" aria-label="Filtrar por rol">
+          <option value="Todos">Todos los roles</option>
+          <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+        </select>
+        <span class="results-count">{{ filteredUsers.length }} usuarios</span>
+      </div>
+
+      <div class="ht-table-wrap">
+        <table class="ht-table">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Correo</th>
+              <th>Rol / Especialidad</th>
+              <th>Cédula Prof.</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of filteredUsers; trackBy: trackById">
+              <td>
+                <div class="ht-person">
+                  <div class="ht-avatar" [style.background]="user.color">{{ getInitials(user.name) }}</div>
+                  <div class="ht-person-text">
+                    <b>{{ user.name }}</b>
+                    <span>{{ user.id }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="soft-cell">{{ user.email }}</td>
+              <td>
+                <span class="ht-badge ht-badge--neutral">{{ user.role }}</span>
+                <small *ngIf="user.specialty" style="display:block; color:#0284c7; font-size:11px; margin-top:3px;">
+                  {{ user.specialty }}
+                </small>
+              </td>
+              <td class="soft-cell">{{ user.cedula || user.credential || '—' }}</td>
+              <td><span class="ht-badge" [ngClass]="badge(user.status)">{{ user.status }}</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="ht-btn ht-btn-sm" type="button"
+                    [ngClass]="user.status === 'Activo' ? 'ht-btn-danger' : 'ht-btn-success'"
+                    (click)="toggleUserStatus(user)">
+                    <ion-icon
+                      [name]="user.status === 'Activo' ? 'lock-closed-outline' : 'checkmark-circle-outline'"></ion-icon>
+                    {{ user.status === 'Activo' ? 'Desactivar' : 'Activar' }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ROLES Y PERMISOS -->
+    <div class="tab-panel" *ngIf="activeTab === 'roles'">
+      <div class="panel-head">
+        <div>
+          <h3>Roles y permisos</h3>
+          <p>Matriz de acceso por módulo. Ajusta los privilegios de cada rol del sistema.</p>
+        </div>
+        <button class="ht-btn ht-btn-primary ht-btn-sm" type="button" (click)="savePermissions()">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          Guardar cambios
+        </button>
+      </div>
+
+      <div class="role-selector">
+        <button class="role-pill" type="button" *ngFor="let role of roles" [class.active]="selectedRole === role"
+          (click)="selectedRole = role">
+          <ion-icon
+            [name]="role === 'Administrador' ? 'shield-half-outline' : role === 'Auditor' ? 'clipboard-outline' : role === 'Paciente' ? 'person-outline' : role === 'Enfermería' ? 'bandage-outline' : 'medical-outline'"></ion-icon>
+          {{ role }}
+        </button>
+        <span class="permission-count">{{ enabledPermissions }} privilegios activos</span>
+      </div>
+
+      <div class="matrix-wrap">
+        <table class="permission-table">
+          <thead>
+            <tr>
+              <th>Módulo del sistema</th>
+              <th>Ver</th>
+              <th>Crear</th>
+              <th>Editar</th>
+              <th>Eliminar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of currentPermissions">
+              <td class="module-cell">
+                <b>{{ row.module }}</b>
+                <span>
+                  {{ row.module === 'Administración y seguridad' ? 'Configuración, usuarios y auditoría' : 'Operación
+                  clínica del expediente' }}
+                </span>
+              </td>
+              <td>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="row.view" />
+                  <span class="switch-track"></span>
+                </label>
+              </td>
+              <td>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="row.create" />
+                  <span class="switch-track"></span>
+                </label>
+              </td>
+              <td>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="row.edit" />
+                  <span class="switch-track"></span>
+                </label>
+              </td>
+              <td>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="row.delete" />
+                  <span class="switch-track"></span>
+                </label>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AUDITORÍA -->
+    <div class="tab-panel" *ngIf="activeTab === 'auditoria'">
+      <div class="panel-head">
+        <div>
+          <h3>Registros de auditoría</h3>
+          <p>Trazabilidad de accesos, consultas y cambios sobre datos clínicos sensibles.</p>
+        </div>
+        <div class="panel-head-actions">
+          <button class="ht-btn ht-btn-ghost ht-btn-sm" type="button" (click)="clearAuditFilters()">
+            <ion-icon name="refresh-outline"></ion-icon>
+            Limpiar
+          </button>
+          <button class="ht-btn ht-btn-primary ht-btn-sm" type="button" (click)="exportCsv()">
+            <ion-icon name="download-outline"></ion-icon>
+            Exportar CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="audit-stats">
+        <div class="audit-stat">
+          <b>{{ auditLog.length }}</b>
+          <span>Eventos totales</span>
+        </div>
+        <div class="audit-stat">
+          <b>{{ warningCount }}</b>
+          <span>Advertencias</span>
+        </div>
+        <div class="audit-stat critical">
+          <b>{{ criticalCount }}</b>
+          <span>Eventos críticos</span>
+        </div>
+        <div class="audit-stat">
+          <b>{{ filteredAudit.length }}</b>
+          <span>Resultados del filtro</span>
+        </div>
+      </div>
+
+      <div class="panel-toolbar">
+        <div class="ht-input-wrap panel-search">
+          <ion-icon name="search-outline"></ion-icon>
+          <input class="ht-input" [(ngModel)]="auditSearch"
+            placeholder="Buscar por usuario, acción, módulo, detalle o IP..." />
+        </div>
+        <select class="ht-select" [(ngModel)]="auditSeverity" aria-label="Filtrar por severidad">
+          <option value="todos">Todas las severidades</option>
+          <option value="info">Informativo</option>
+          <option value="warning">Advertencia</option>
+          <option value="critical">Crítico</option>
+        </select>
+        <span class="results-count">{{ filteredAudit.length }} eventos</span>
+      </div>
+
+      <div class="ht-table-wrap">
+        <table class="ht-table">
+          <thead>
+            <tr>
+              <th>Severidad</th>
+              <th>Fecha / hora</th>
+              <th>Usuario</th>
+              <th>Acción</th>
+              <th>Módulo</th>
+              <th>Detalle</th>
+              <th>IP origen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of filteredAudit; trackBy: trackById">
+              <td>
+                <span class="severity-cell">
+                  <i class="severity-dot" [ngClass]="dotClass(entry.severity)"></i>
+                  {{ severityLabelFor(entry.severity) }}
+                </span>
+              </td>
+              <td class="soft-cell nowrap">{{ shortDate(entry.date) }} · {{ entry.time }}</td>
+              <td class="nowrap"><b class="user-cell">{{ entry.user }}</b></td>
+              <td class="nowrap">{{ entry.action }}</td>
+              <td class="soft-cell nowrap">{{ entry.module }}</td>
+              <td class="detail-cell">{{ entry.detail }}</td>
+              <td class="soft-cell nowrap">{{ entry.ip }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- HONEYPOT -->
+    <div class="tab-panel" *ngIf="activeTab === 'honeypot'">
+      <div class="panel-head">
+        <div>
+          <h3>Detección de intrusos</h3>
+          <p>Honeypot activo conectado a Supabase para detectar accesos no autorizados.</p>
+        </div>
+        <div class="panel-head-actions">
+          <button class="ht-btn ht-btn-ghost ht-btn-sm" type="button" (click)="refreshHoneypotLog()">
+            <ion-icon name="refresh-outline"></ion-icon>
+            Recargar
+          </button>
+          <button class="ht-btn ht-btn-danger ht-btn-sm" type="button" (click)="clearHoneypotLog()">
+            <ion-icon name="trash-outline"></ion-icon>
+            Vaciar registro
+          </button>
+        </div>
+      </div>
+
+      <div class="ht-table-wrap">
+        <table class="ht-table honeypot-table">
+          <thead>
+            <tr>
+              <th>Severidad</th>
+              <th>Fecha / hora</th>
+              <th>Tipo</th>
+              <th>Ruta</th>
+              <th>Usuario / rol</th>
+              <th>Origen</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let event of honeypotLog; trackBy: trackById">
+              <td>
+                <span class="severity-cell">
+                  <i class="severity-dot" [ngClass]="dotClass(event.severity)"></i>
+                  {{ severityLabelFor(event.severity) }}
+                </span>
+              </td>
+              <td class="soft-cell nowrap">{{ eventTime(event.timestamp) }}</td>
+              <td class="nowrap"><b class="user-cell">{{ event.type }}</b></td>
+              <td class="nowrap"><code class="route-code">{{ event.route }}</code></td>
+              <td class="nowrap"><b class="user-cell">{{ event.user }}</b> · {{ event.role }}</td>
+              <td class="soft-cell nowrap">{{ event.origin }}</td>
+              <td class="detail-cell">{{ event.detail }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SEGURIDAD -->
+    <div class="tab-panel" *ngIf="activeTab === 'seguridad'">
+      <div class="security-hero">
+        <div class="security-hero-icon">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+        </div>
+        <div class="security-hero-text">
+          <span class="ht-eyebrow">Defensa en profundidad</span>
+          <h3>Plan maestro de seguridad en 7 capas</h3>
+          <p>
+            Cada capa agrega controles independientes para proteger datos médicos sensibles.
+          </p>
+        </div>
+        <div class="security-score">
+          <b>7/7</b>
+          <span>capas activas</span>
+        </div>
+      </div>
+
+      <div class="layers-grid">
+        <article class="layer-card" *ngFor="let layer of securityLayers" [ngClass]="'tone-' + layer.tone">
+          <div class="layer-head">
+            <span class="layer-icon"><ion-icon [name]="layer.icon"></ion-icon></span>
+            <div>
+              <b>{{ layer.title }}</b>
+              <span>{{ layer.subtitle }}</span>
+            </div>
+            <i class="layer-status" title="Capa activa"></i>
+          </div>
+          <ul>
+            <li *ngFor="let control of layer.controls">
+              <ion-icon name="checkmark"></ion-icon>
+              {{ control }}
+            </li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- MODAL ALTA DE PERSONAL / USUARIO -->
+<div class="modal-backdrop" *ngIf="showUserModal" (click)="closeUserModal()">
+  <div class="modal-card modal-card--sm" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div>
+        <span class="ht-eyebrow"><ion-icon name="person-outline"></ion-icon> Nuevo acceso</span>
+        <h3>Dar de alta usuario o médico</h3>
+        <p>Solo el Administrador puede registrar médicos con cédula profesional.</p>
+      </div>
+      <button class="ht-icon-btn" type="button" (click)="closeUserModal()" aria-label="Cerrar">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="ht-form-grid">
+        <div class="ht-field ht-col-full">
+          <label>Nombre completo *</label>
+          <input class="ht-input" [(ngModel)]="nuevo.name" placeholder="Ej. Dra. Laura Martínez" />
+        </div>
+        <div class="ht-field ht-col-full">
+          <label>Correo electrónico *</label>
+          <input class="ht-input" type="email" [(ngModel)]="nuevo.email" placeholder="nombre@healthtext.com" />
+        </div>
+        <div class="ht-field">
+          <label>Rol</label>
+          <select class="ht-select" [(ngModel)]="nuevo.role">
+            <option *ngFor="let role of roles" [value]="role">{{ role }}</option>
+          </select>
+        </div>
+        <div class="ht-field">
+          <label>Estado inicial</label>
+          <select class="ht-select" [(ngModel)]="nuevo.status">
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+          </select>
+        </div>
+
+        <ng-container *ngIf="nuevo.role === 'Médico' || nuevo.role === 'Enfermería'">
+          <div class="ht-field" *ngIf="nuevo.role === 'Médico'">
+            <label>Especialidad médica *</label>
+            <select class="ht-select" [(ngModel)]="nuevo.specialty">
+              <option *ngFor="let spec of specialties" [value]="spec">{{ spec }}</option>
+            </select>
+          </div>
+          <div class="ht-field" [class.ht-col-full]="nuevo.role === 'Enfermería'">
+            <label>Cédula profesional {{ nuevo.role === 'Médico' ? '*' : '(opcional)' }}</label>
+            <input class="ht-input" [(ngModel)]="nuevo.cedula" placeholder="Ej. 11948273" />
+          </div>
+        </ng-container>
+      </div>
+
+      <div class="modal-error" *ngIf="userModalError">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        {{ userModalError }}
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="ht-btn ht-btn-ghost" type="button" (click)="closeUserModal()">Cancelar</button>
+      <button class="ht-btn ht-btn-primary" type="button" (click)="saveUser()">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        Crear cuenta
+      </button>
+    </div>
+  </div>
+</div>

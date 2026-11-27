@@ -1,0 +1,246 @@
+<div class="medichat-layout">
+  <!-- Cabecera profesional del chat -->
+  <header class="medichat-header">
+    <div class="header-bot-info">
+      <div class="avatar-wrapper">
+        <div class="bot-avatar">
+          <svg viewBox="0 0 40 40" class="bot-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="12" fill="url(#botGrad)"/>
+            <path d="M20 9C14.477 9 10 13.477 10 19C10 24.523 14.477 29 20 29C25.523 29 30 24.523 30 19C30 13.477 25.523 9 20 9Z" fill="#E8F4FD"/>
+            <!-- Stethoscope / Cross emblem -->
+            <path d="M19 14H21V18H25V20H21V24H19V20H15V18H19V14Z" fill="#1E88E5"/>
+            <!-- Cute friendly eyes -->
+            <circle cx="16" cy="18" r="1.5" fill="#0D47A1"/>
+            <circle cx="24" cy="18" r="1.5" fill="#0D47A1"/>
+            <!-- Smile -->
+            <path d="M17 22C18 23.2 22 23.2 23 22" stroke="#0D47A1" stroke-width="1.5" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="botGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#73C7E3"/>
+                <stop offset="1" stop-color="#2E4A70"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="status-indicator" title="En línea y listo para asistir"></span>
+        </div>
+      </div>
+      <div class="header-details">
+        <div class="bot-name-row">
+          <h2>MediChat AI</h2>
+          <span class="badge-bot">Asistente Clínico</span>
+        </div>
+        <p class="bot-sub">Triaje de síntomas, evaluación de urgencia y análisis dérmico 24/7</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="action-btn" (click)="mostrarInfoLegal()" title="Privacidad y aviso legal">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <span class="btn-text">Aviso Legal</span>
+      </button>
+      <button type="button" class="action-btn danger" (click)="confirmarLimpieza()" title="Reiniciar conversación">
+        <ion-icon name="trash-outline"></ion-icon>
+        <span class="btn-text">Limpiar Chat</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Cuerpo de mensajes con scroll automático -->
+  <div class="medichat-body" #scrollContainer>
+    <div class="messages-list">
+
+      <!-- Burbuja inicial y permanente de bienvenida a MediChat -->
+      <div class="message-row bot-row welcome-row">
+        <div class="msg-avatar">
+          <div class="mini-bot-icon">
+            <ion-icon name="medical-outline"></ion-icon>
+          </div>
+        </div>
+        <div class="message-content">
+          <div class="bubble bot-bubble welcome-bubble">
+            <div class="welcome-badge">
+              <span class="pulse-dot"></span>
+              <span>Bienvenido a MediChat</span>
+            </div>
+            <h3 class="welcome-title">¡Hola! Soy tu asistente de orientación médica</h3>
+            <p class="welcome-desc">
+              Estoy diseñado para ayudarte a evaluar síntomas iniciales, orientarte sobre la urgencia de tu caso y analizar imágenes clínicas de lesiones o quemaduras cutáneas.
+            </p>
+
+            <div class="features-grid">
+              <div class="feature-item" (click)="usarSugerencia('Tengo dolor de cabeza y fiebre leve desde ayer')">
+                <span class="feature-icon">🩺</span>
+                <div class="feature-text">
+                  <b>Triaje de Síntomas</b>
+                  <span>Describe lo que sientes y obtén orientación inmediata.</span>
+                </div>
+              </div>
+              <div class="feature-item" (click)="botonAbrirCamara()">
+                <span class="feature-icon">📸</span>
+                <div class="feature-text">
+                  <b>Análisis Dérmico y Quemaduras</b>
+                  <span>Sube una foto clara para evaluar grado y recomendaciones.</span>
+                </div>
+              </div>
+              <div class="feature-item" (click)="usarSugerencia('¿Cuándo debo acudir al servicio de urgencias?')">
+                <span class="feature-icon">🛡️</span>
+                <div class="feature-text">
+                  <b>Pautas y Especialistas</b>
+                  <span>Recomendaciones de cuidado y canalización con médicos.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="welcome-footer-note">
+              <ion-icon name="shield-checkmark-outline"></ion-icon>
+              <span>Tus consultas son confidenciales. Para comenzar, escribe tu mensaje abajo o adjunta una fotografía.</span>
+            </div>
+          </div>
+          <span class="msg-time">Siempre activo</span>
+        </div>
+      </div>
+
+      <!-- Historial de mensajes -->
+      <div *ngFor="let m of mensajes" [class]="'message-row ' + (m.rol === 'usuario' ? 'user-row' : 'bot-row')">
+        <div class="msg-avatar" *ngIf="m.rol !== 'usuario'">
+          <div class="mini-bot-icon">
+            <ion-icon name="medical-outline"></ion-icon>
+          </div>
+        </div>
+
+        <div class="message-content">
+          <div class="bubble" [class.user-bubble]="m.rol === 'usuario'" [class.bot-bubble]="m.rol !== 'usuario'">
+            
+            <!-- Imagen adjunta -->
+            <div class="img-attachment" *ngIf="m.imagen">
+              <img [src]="m.imagen" alt="Captura enviada" />
+            </div>
+
+            <!-- Grado detectado -->
+            <div *ngIf="m.grado" [class]="'severity-badge grado-' + m.grado">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <span>Quemadura Detectada: Grado {{ m.grado }}</span>
+            </div>
+
+            <!-- Texto del mensaje -->
+            <div class="bubble-text">{{ m.texto }}</div>
+
+            <!-- Pautas inmediatas -->
+            <div *ngIf="(m.pautas && m.pautas.length > 0)" class="guidelines-card">
+              <div class="guidelines-title">
+                <ion-icon name="medkit-outline"></ion-icon>
+                <span>Pautas de atención inmediata:</span>
+              </div>
+              <ul class="guidelines-list">
+                <li *ngFor="let pauta of m.pautas">
+                  <ion-icon name="checkmark-circle-outline"></ion-icon>
+                  <span>{{ pauta }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Especialistas recomendados -->
+            <div *ngIf="(m.recomendaciones && m.recomendaciones.length > 0)" class="doctors-section">
+              <div class="doctors-title">Especialistas recomendados:</div>
+              <div *ngFor="let doc of m.recomendaciones" class="doctor-pill-card">
+                <div class="doc-icon-wrap">
+                  <ion-icon name="person-circle-outline"></ion-icon>
+                </div>
+                <div class="doc-data">
+                  <span class="doc-name">{{ doc.nombre_doctor }}</span>
+                  <span class="doc-spec">{{ doc.especialidad }}</span>
+                </div>
+                <button type="button" class="btn-doc-agenda" (click)="agendarCon(doc)">
+                  Agendar Cita
+                </button>
+              </div>
+            </div>
+
+          </div>
+          <span class="msg-time">{{ m.hora || 'Ahora' }}</span>
+        </div>
+
+        <div class="msg-avatar" *ngIf="m.rol === 'usuario'">
+          <div class="user-avatar-circle">Tú</div>
+        </div>
+      </div>
+
+      <!-- Indicador de pensamiento / análisis -->
+      <div *ngIf="cargando" class="message-row bot-row loading-row">
+        <div class="msg-avatar">
+          <div class="mini-bot-icon thinking">
+            <ion-icon name="pulse-outline"></ion-icon>
+          </div>
+        </div>
+        <div class="message-content">
+          <div class="bubble bot-bubble typing-bubble">
+            <div class="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span class="typing-text">MediChat está analizando tu consulta clínica...</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Barra de entrada de chat fija en la parte inferior -->
+  <footer class="medichat-input-bar">
+    <!-- Miniatura flotante de imagen seleccionada -->
+    <div class="attachment-preview" *ngIf="previewUrl">
+      <div class="thumb-box">
+        <img [src]="previewUrl" alt="Vista previa de imagen" />
+        <button type="button" class="remove-thumb-btn" (click)="cancelarImagen()" title="Quitar imagen">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+      <div class="thumb-meta">
+        <span class="thumb-name">{{ selectedFile?.name || 'Imagen seleccionada' }}</span>
+        <span class="thumb-hint">Listo para analizar junto a tu mensaje</span>
+      </div>
+    </div>
+
+    <input #fileInput type="file" (change)="onFileSelected($event)" accept="image/*" style="display: none" />
+
+    <div class="input-composer">
+      <!-- Botón para adjuntar foto / cámara -->
+      <button
+        type="button"
+        class="composer-btn clip-btn"
+        (click)="botonAbrirCamara()"
+        [disabled]="cargando"
+        title="Adjuntar fotografía clínica"
+      >
+        <ion-icon name="camera-outline"></ion-icon>
+      </button>
+
+      <!-- Campo de texto del chat -->
+      <textarea
+        #chatTextarea
+        [(ngModel)]="mensajeUsuario"
+        placeholder="Escribe tus síntomas o haz una pregunta a MediChat..."
+        rows="1"
+        (keydown)="onTextareaKeyDown($event)"
+        [disabled]="cargando"
+      ></textarea>
+
+      <!-- Botón de envío -->
+      <button
+        type="button"
+        class="composer-btn send-btn"
+        (click)="enviarTodo()"
+        [disabled]="(!mensajeUsuario.trim() && !selectedFile) || cargando"
+        title="Enviar mensaje"
+      >
+        <ion-icon name="send"></ion-icon>
+      </button>
+    </div>
+
+    <div class="input-footer-caption">
+      <span>MediChat proporciona orientación preliminar asistida por IA y no sustituye el juicio de un profesional de la salud.</span>
+    </div>
+  </footer>
+</div>

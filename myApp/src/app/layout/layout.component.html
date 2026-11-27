@@ -1,0 +1,64 @@
+<div class="ht-shell" #shell>
+  <aside class="ht-sidebar" [class.open]="sidebarOpen">
+    <div class="ht-brand">
+      <div class="ht-brand-mark">
+        <ion-icon name="pulse-outline"></ion-icon>
+      </div>
+      <div class="ht-brand-text">
+        <b>HealthText</b>
+        <span>Cloud &amp; Smart Record</span>
+      </div>
+    </div>
+
+    <div class="ht-sidebar-label">{{ spaceLabel }}</div>
+
+    <nav class="ht-nav">
+      <a *ngFor="let item of navItems" [routerLink]="item.route" routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.exact }" (click)="closeSidebar()">
+        <ion-icon [name]="item.icon"></ion-icon>
+        <span>{{ item.label }}</span>
+        <em *ngIf="item.badge">{{ item.badge }}</em>
+      </a>
+    </nav>
+
+    <div class="ht-sidebar-bottom">
+      <div class="ht-secure-card">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <div>
+          <b>Sesión protegida</b>
+          <span>Cifrado TLS 1.3 · 7 capas</span>
+        </div>
+      </div>
+
+      <div class="ht-user-card" *ngIf="user">
+        <div class="ht-avatar" style="background: linear-gradient(135deg, #73c7e3, #3b82f6)">
+          {{ user.initials }}
+        </div>
+        <div class="ht-user-info">
+          <b>{{ user.name }}</b>
+          <span>{{ user.role }}</span>
+        </div>
+        <button class="ht-logout" type="button" title="Cerrar sesión" (click)="logout()">
+          <ion-icon name="log-out-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="ht-overlay" *ngIf="sidebarOpen" (click)="closeSidebar()"></div>
+
+  <div class="ht-main">
+    <!-- Borde blanco superior eliminado para evitar repetición de títulos, buscador y perfil duplicado -->
+    <main class="ht-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+
+  <nav class="ht-bottom-nav">
+    <a *ngFor="let item of navItems" [routerLink]="item.route" routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: item.exact }">
+      <ion-icon [name]="item.icon"></ion-icon>
+      <span>{{ item.shortLabel }}</span>
+    </a>
+  </nav>
+</div>
