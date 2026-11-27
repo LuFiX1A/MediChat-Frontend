@@ -1,0 +1,342 @@
+<div class="ht-page patient-portal-page">
+    <div class="ht-page-head">
+        <div>
+            <span class="ht-eyebrow"><ion-icon name="pulse-outline"></ion-icon> Portal del Paciente</span>
+            <h2 class="ht-title">Hola, {{ user?.name || 'Paciente' }}</h2>
+            <p class="ht-subtitle">
+                Consulta tus síntomas con MediChat AI, analiza lesiones cutáneas y solicita citas con nuestros
+                especialistas.
+            </p>
+        </div>
+        <div class="ht-actions">
+            <button class="ht-btn ht-btn-primary" type="button" (click)="openRequestAppointmentModal()">
+                <ion-icon name="calendar-outline"></ion-icon>
+                Solicitar cita médica
+            </button>
+        </div>
+    </div>
+
+    <div class="success-banner" *ngIf="requestSentBanner">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        <div>
+            <b>Solicitud de cita enviada al médico</b>
+            <span>
+                Tu pre-triaje de MediChat y síntomas fueron enviados a <b>{{ requestDoctorName }}</b>.
+                Puedes ver el estado de confirmación en el panel derecho <b>Mis citas</b>.
+            </span>
+        </div>
+    </div>
+
+    <div class="portal-grid">
+        <!-- COLUMNA IZQUIERDA: MEDICHAT AI -->
+        <div class="medichat-layout">
+            <header class="medichat-header">
+                <div class="header-bot-info">
+                    <div class="bot-avatar">
+                        <ion-icon name="medical-outline"></ion-icon>
+                        <span class="status-indicator"></span>
+                    </div>
+                    <div class="header-details">
+                        <div class="bot-name-row">
+                            <h2>MediChat AI</h2>
+                            <span class="badge-bot">Triaje Inteligente 24/7</span>
+                        </div>
+                        <p class="bot-sub">Describe lo que sientes o adjunta una fotografía para evaluar urgencia y
+                            especialista</p>
+                    </div>
+                </div>
+
+                <div class="header-actions">
+                    <button type="button" class="action-btn" (click)="mostrarInfoLegal()">
+                        <ion-icon name="information-circle-outline"></ion-icon>
+                        <span>Aviso Legal</span>
+                    </button>
+                    <button type="button" class="action-btn danger" (click)="confirmarLimpieza()">
+                        <ion-icon name="trash-outline"></ion-icon>
+                        <span>Limpiar Chat</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="medichat-body" #scrollContainer>
+                <div class="messages-list">
+                    <!-- Bienvenida -->
+                    <div class="message-row bot-row">
+                        <div class="msg-avatar">
+                            <div class="mini-bot-icon"><ion-icon name="medical-outline"></ion-icon></div>
+                        </div>
+                        <div class="message-content">
+                            <div class="bubble bot-bubble welcome-bubble">
+                                <div class="welcome-badge">
+                                    <span class="pulse-dot"></span>
+                                    <span>Asistente de orientación médica</span>
+                                </div>
+                                <h3 class="welcome-title">Cuéntame tus síntomas o sensaciones</h3>
+                                <p class="welcome-desc">
+                                    Analizaré tu caso y te recomendaré al médico indicado. Al pulsar <b>Solicitar
+                                        cita</b>,
+                                    tus síntomas se cargarán automáticamente en tu solicitud.
+                                </p>
+
+                                <div class="features-grid">
+                                    <div class="feature-item"
+                                        (click)="usarSugerencia('Tengo dolor en el pecho al caminar y sensación de falta de aire')">
+                                        <span class="feature-icon">🩺</span>
+                                        <div class="feature-text">
+                                            <b>Orientación de síntomas</b>
+                                            <span>Evaluación inmediata de urgencia y especialidad.</span>
+                                        </div>
+                                    </div>
+                                    <div class="feature-item" (click)="botonAbrirCamara()">
+                                        <span class="feature-icon">📸</span>
+                                        <div class="feature-text">
+                                            <b>Análisis de quemaduras (CNN)</b>
+                                            <span>Sube una foto clara para detectar grado y pautas.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="msg-time">Siempre activo</span>
+                        </div>
+                    </div>
+
+                    <!-- Mensajes -->
+                    <div *ngFor="let m of mensajes"
+                        [class]="'message-row ' + (m.rol === 'usuario' ? 'user-row' : 'bot-row')">
+                        <div class="msg-avatar" *ngIf="m.rol !== 'usuario'">
+                            <div class="mini-bot-icon"><ion-icon name="medical-outline"></ion-icon></div>
+                        </div>
+
+                        <div class="message-content">
+                            <div class="bubble" [class.user-bubble]="m.rol === 'usuario'"
+                                [class.bot-bubble]="m.rol !== 'usuario'">
+                                <div class="img-attachment" *ngIf="m.imagen">
+                                    <img [src]="m.imagen" alt="Fotografía clínica" />
+                                </div>
+
+                                <div *ngIf="m.grado" [class]="'severity-badge grado-' + m.grado">
+                                    <ion-icon name="alert-circle-outline"></ion-icon>
+                                    <span>Quemadura Detectada: Grado {{ m.grado }}</span>
+                                </div>
+
+                                <div class="bubble-text">{{ m.texto }}</div>
+
+                                <div *ngIf="m.pautas && m.pautas.length > 0" class="guidelines-card">
+                                    <div class="guidelines-title">
+                                        <ion-icon name="medkit-outline"></ion-icon>
+                                        <span>Pautas de atención inmediata:</span>
+                                    </div>
+                                    <ul class="guidelines-list">
+                                        <li *ngFor="let pauta of m.pautas">
+                                            <ion-icon name="checkmark-circle-outline"></ion-icon>
+                                            <span>{{ pauta }}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div *ngIf="m.recomendaciones && m.recomendaciones.length > 0" class="doctors-section">
+                                    <div class="doctors-title">Médico recomendado en HealthText:</div>
+                                    <div *ngFor="let doc of m.recomendaciones" class="doctor-pill-card">
+                                        <div class="doc-icon-wrap">
+                                            <ion-icon name="person-circle-outline"></ion-icon>
+                                        </div>
+                                        <div class="doc-data">
+                                            <span class="doc-name">{{ doc.nombre_doctor }}</span>
+                                            <span class="doc-spec">{{ doc.especialidad }}</span>
+                                        </div>
+                                        <button type="button" class="btn-doc-agenda"
+                                            (click)="openRequestAppointmentModal(doc)">
+                                            Solicitar Cita
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="msg-time">{{ m.hora || 'Ahora' }}</span>
+                        </div>
+
+                        <div class="msg-avatar" *ngIf="m.rol === 'usuario'">
+                            <div class="user-avatar-circle">Tú</div>
+                        </div>
+                    </div>
+
+                    <div *ngIf="cargando" class="message-row bot-row">
+                        <div class="msg-avatar">
+                            <div class="mini-bot-icon thinking"><ion-icon name="pulse-outline"></ion-icon></div>
+                        </div>
+                        <div class="message-content">
+                            <div class="bubble bot-bubble typing-bubble">
+                                <span class="typing-text">Analizando síntomas y especialistas disponibles...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="medichat-input-bar">
+                <div class="attachment-preview" *ngIf="previewUrl">
+                    <div class="thumb-box">
+                        <img [src]="previewUrl" alt="Vista previa" />
+                        <button type="button" class="remove-thumb-btn" (click)="cancelarImagen()">
+                            <ion-icon name="close-outline"></ion-icon>
+                        </button>
+                    </div>
+                    <div class="thumb-meta">
+                        <span class="thumb-name">{{ selectedFile?.name || 'Imagen seleccionada' }}</span>
+                        <span class="thumb-hint">Listo para analizar con visión artificial CNN</span>
+                    </div>
+                </div>
+
+                <input #fileInput type="file" (change)="onFileSelected($event)" accept="image/*"
+                    style="display: none" />
+
+                <div class="input-composer">
+                    <button type="button" class="composer-btn clip-btn" (click)="botonAbrirCamara()"
+                        [disabled]="cargando" title="Adjuntar fotografía">
+                        <ion-icon name="camera-outline"></ion-icon>
+                    </button>
+
+                    <textarea [(ngModel)]="mensajeUsuario"
+                        placeholder="Describe tus síntomas, malestares o sube una foto..." rows="1"
+                        (keydown)="onTextareaKeyDown($event)" [disabled]="cargando"></textarea>
+
+                    <button type="button" class="composer-btn send-btn" (click)="enviarTodo()"
+                        [disabled]="(!mensajeUsuario.trim() && !selectedFile) || cargando">
+                        <ion-icon name="send"></ion-icon>
+                    </button>
+                </div>
+            </footer>
+        </div>
+
+        <!-- COLUMNA DERECHA: MIS CITAS Y ESPECIALISTAS DISPONIBLES -->
+        <aside class="portal-side">
+            <section class="ht-card side-card">
+                <div class="ht-card-head">
+                    <div>
+                        <h3>Mis citas médicas</h3>
+                        <p>Estado de tus solicitudes y consultas confirmadas</p>
+                    </div>
+                    <span class="ht-badge ht-badge--info">{{ myAppointments.length }}</span>
+                </div>
+
+                <div class="appts-stack" *ngIf="myAppointments.length > 0; else emptyAppts">
+                    <div class="patient-appt-item" *ngFor="let appt of myAppointments">
+                        <div class="appt-top">
+                            <b>{{ appt.doctor }}</b>
+                            <span class="ht-badge" [ngClass]="badge(appt.status)">{{ appt.status }}</span>
+                        </div>
+                        <span class="appt-spec">{{ appt.specialty }}</span>
+                        <div class="appt-when">
+                            <ion-icon name="calendar-outline"></ion-icon>
+                            <span>{{ prettyDate(appt.date) }} · {{ appt.time }}</span>
+                        </div>
+                        <p class="appt-reason">{{ appt.reason }}</p>
+                    </div>
+                </div>
+
+                <ng-template #emptyAppts>
+                    <p class="empty-hint">
+                        Aún no tienes citas registradas. Consulta con MediChat o selecciona un especialista abajo para
+                        solicitar tu cita.
+                    </p>
+                </ng-template>
+            </section>
+
+            <section class="ht-card side-card">
+                <div class="ht-card-head">
+                    <div>
+                        <h3>Especialistas disponibles</h3>
+                        <p>Equipo médico verificado de HealthText</p>
+                    </div>
+                </div>
+
+                <div class="doctors-stack">
+                    <div class="doc-row" *ngFor="let doc of availableDoctors">
+                        <div class="ht-avatar ht-avatar--sm" [style.background]="doc.color">
+                            {{ doc.name.slice(0, 2).toUpperCase() }}
+                        </div>
+                        <div class="doc-meta">
+                            <b>{{ doc.name }}</b>
+                            <span>{{ doc.specialty || 'Medicina General' }}</span>
+                            <small *ngIf="doc.cedula">Cédula Prof. {{ doc.cedula }}</small>
+                        </div>
+                        <button class="ht-btn ht-btn-ghost ht-btn-sm" type="button"
+                            (click)="openRequestWithSystemDoctor(doc)">
+                            Solicitar
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </aside>
+    </div>
+</div>
+
+<!-- MODAL DE SOLICITUD DE CITA (AUTOCOMPLETADO CON MEDICHAT) -->
+<div class="modal-backdrop" *ngIf="showRequestModal" (click)="closeRequestModal()">
+    <div class="modal-card modal-card--sm" (click)="$event.stopPropagation()">
+        <div class="modal-head">
+            <div>
+                <span class="ht-eyebrow"><ion-icon name="calendar-outline"></ion-icon> Solicitud de atención
+                    médica</span>
+                <h3>Solicitar cita con especialista</h3>
+                <p>Hemos precargado los síntomas que describiste en MediChat para agilizar tu valoración.</p>
+            </div>
+            <button class="ht-icon-btn" type="button" (click)="closeRequestModal()" aria-label="Cerrar">
+                <ion-icon name="close-outline"></ion-icon>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div class="ht-form-grid">
+                <div class="ht-field">
+                    <label>Médico seleccionado</label>
+                    <select class="ht-select" [(ngModel)]="requestDoctorName" (ngModelChange)="onDoctorChange($event)">
+                        <option *ngFor="let doc of availableDoctors" [value]="doc.name">
+                            {{ doc.name }} · {{ doc.specialty || 'Medicina General' }}
+                        </option>
+                    </select>
+                </div>
+
+                <div class="ht-field">
+                    <label>Especialidad</label>
+                    <input class="ht-input" [(ngModel)]="requestSpecialty" />
+                </div>
+
+                <div class="ht-field ht-col-full">
+                    <label>Síntomas, malestares o motivo de consulta *</label>
+                    <textarea class="ht-textarea" rows="3" [(ngModel)]="requestSymptoms"
+                        placeholder="Describe lo que sientes, desde cuándo empezó y su intensidad..."></textarea>
+                    <small>Este resumen se enviará directamente al médico junto con la clasificación de
+                        urgencia.</small>
+                </div>
+
+                <div class="ht-field">
+                    <label>Fecha preferida de atención</label>
+                    <input class="ht-input" type="date" [(ngModel)]="requestPreferredDate" [disabled]="requestUrgent" />
+                </div>
+
+                <div class="ht-field">
+                    <label>Prioridad de atención</label>
+                    <button type="button" class="urgent-toggle-btn" [class.active]="requestUrgent"
+                        (click)="requestUrgent = !requestUrgent">
+                        <ion-icon name="flash-outline"></ion-icon>
+                        <span>{{ requestUrgent ? '¡Urgente! Hoy / Lo antes posible' : 'Marcar como urgente (Hoy mismo)'
+                            }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-error" *ngIf="requestError">
+                <ion-icon name="alert-circle-outline"></ion-icon>
+                {{ requestError }}
+            </div>
+        </div>
+
+        <div class="modal-foot">
+            <button class="ht-btn ht-btn-ghost" type="button" (click)="closeRequestModal()">Cancelar</button>
+            <button class="ht-btn ht-btn-primary" type="button" (click)="submitAppointmentRequest()">
+                <ion-icon name="checkmark-circle-outline"></ion-icon>
+                Enviar solicitud al médico
+            </button>
+        </div>
+    </div>
+</div>

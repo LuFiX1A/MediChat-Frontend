@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
@@ -33,13 +33,19 @@ interface ConsultationForm {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, IonIcon],
 })
-export class ConsultationPage implements OnInit {
+export class ConsultationPage implements OnInit, OnDestroy {
   patients: Patient[] = [];
   selectedPatient?: Patient;
   formError = '';
   saved = false;
   savedPatientId = '';
   savedPatientName = '';
+
+  nlpDetecting = false;
+  nlpConfidence = 0;
+  nlpKeywords: string[] = [];
+  private manualRiskOverride = false;
+  private nlpTimer?: ReturnType<typeof setTimeout>;
 
   readonly symptomSuggestions = [
     'Fiebre',
@@ -75,7 +81,7 @@ export class ConsultationPage implements OnInit {
     private auth: AuthService,
     private route: ActivatedRoute,
     private router: Router,
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.patients = this.data.patients;
@@ -86,6 +92,12 @@ export class ConsultationPage implements OnInit {
         this.selectPatient(patientId);
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    if (this.nlpTimer) {
+      clearTimeout(this.nlpTimer);
+    }
   }
 
   get dateLabel(): string {
@@ -99,10 +111,29 @@ export class ConsultationPage implements OnInit {
   selectPatient(patientId: string): void {
     this.consulta.patientId = patientId;
     this.selectedPatient = this.data.getPatient(patientId);
+    if (this.selectedPatient && !this.manualRiskOverride) {
+      this.consulta.risk = this.selectedPatient.risk;
+    }
   }
 
   onPatientChange(): void {
     this.selectedPatient = this.data.getPatient(this.consulta.patientId);
+    if (this.selectedPatient && !this.manualRiskOverride) {
+      this.consulta.risk = this.selectedPatient.risk;
+    }
+  }
+
+  onManualRiskChange(): void {
+    this.manualRiskOverride = true;
+  }
+
+  onClinicalTextChange(): void {
+    if (this.nlpTimer) {
+      clearTimeout(this.nlpTimer);
+    }
+    this.nlpTimer = setTimeout(() => {
+      void this.classifyClinicalTextWithNlp();
+    }, 600);
   }
 
   addSymptom(symptom: string): void {
@@ -112,6 +143,51 @@ export class ConsultationPage implements OnInit {
     this.consulta.symptoms = this.consulta.symptoms.trim()
       ? `${this.consulta.symptoms.trim()}, ${symptom}`
       : symptom;
+    this.onClinicalTextChange();
+  }
+
+  private async classifyClinicalTextWithNlp(): Promise<void> {
+    const hasText =
+      this.consulta.symptoms.trim().length > 3 ||
+      this.consulta.notes.trim().length > 3 ||
+      this.consulta.diagnosis.trim().length > 3;
+
+    if (!hasText) {
+      return;
+    }
+
+    this.nlpDetecting = true;
+    try {
+      const token = this.auth.getToken();
+      const headers: Record<string, string> = token
+        ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+        : { 'Content-Type': 'application/json' };
+
+      const res = await fetch('http://127.0.0.1:8000/api/nlp/analyze-note', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          symptoms: this.consulta.symptoms.trim(),
+          notes: this.consulta.notes.trim(),
+          diagnosis: this.consulta.diagnosis.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        if (result?.status === 'ok' && result?.predicted_risk) {
+          this.nlpConfidence = result.confidence ?? 0;
+          this.nlpKeywords = result.extracted_keywords ?? [];
+          if (!this.manualRiskOverride) {
+            this.consulta.risk = result.predicted_risk as RiskLevel;
+          }
+        }
+      }
+    } catch {
+      // Si el backend no responde en ese instante, se clasifica al guardar
+    } finally {
+      this.nlpDetecting = false;
+    }
   }
 
   saveConsultation(): void {
@@ -141,7 +217,7 @@ export class ConsultationPage implements OnInit {
     }
 
     const doctor = this.auth.current()?.name ?? 'Dra. Valentina Ortiz';
-    const created = this.data.addConsultation(patient.id, {
+    this.data.addConsultation(patient.id, {
       date: this.consulta.date,
       doctor,
       specialty: this.consulta.specialty,
@@ -178,6 +254,9 @@ export class ConsultationPage implements OnInit {
     this.saved = true;
     this.savedPatientId = patient.id;
     this.savedPatientName = patient.name;
+    this.manualRiskOverride = false;
+    this.nlpKeywords = [];
+    this.nlpConfidence = 0;
     this.consulta = this.emptyForm();
     this.selectedPatient = undefined;
     this.router.navigate(['/consulta'], { replaceUrl: true });
@@ -186,6 +265,9 @@ export class ConsultationPage implements OnInit {
   newConsultation(): void {
     this.saved = false;
     this.formError = '';
+    this.manualRiskOverride = false;
+    this.nlpKeywords = [];
+    this.nlpConfidence = 0;
     this.consulta = this.emptyForm();
     this.selectedPatient = undefined;
   }

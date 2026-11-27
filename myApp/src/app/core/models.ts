@@ -2,7 +2,7 @@ export type Sex = 'F' | 'M';
 export type RiskLevel = 'Bajo' | 'Medio' | 'Alto';
 export type PatientStatus = 'Activo' | 'En seguimiento' | 'Inactivo';
 export type AppointmentStatus = 'Confirmada' | 'Pendiente' | 'Cancelada' | 'Completada';
-export type UserRole = 'Administrador' | 'Médico' | 'Enfermería' | 'Auditor';
+export type UserRole = 'Administrador' | 'Médico' | 'Enfermería' | 'Auditor' | 'Paciente';
 export type UserStatus = 'Activo' | 'Inactivo';
 export type AuditSeverity = 'info' | 'warning' | 'critical';
 export type ConsultationStatus = 'Activa' | 'Seguimiento' | 'Finalizada';
@@ -29,6 +29,17 @@ export interface Consultation {
   risk: RiskLevel;
 }
 
+export interface TriageNote {
+  id: string;
+  date: string;
+  time: string;
+  summary: string;
+  recommendedDoctor: string;
+  recommendedSpecialty: string;
+  burnGrade?: number | null;
+  nlpRisk: RiskLevel;
+}
+
 export interface Patient {
   id: string;
   name: string;
@@ -50,12 +61,14 @@ export interface Patient {
   color: string;
   vitals: VitalSigns;
   consultations: Consultation[];
+  triageNotes?: TriageNote[];
 }
 
 export interface Appointment {
   id: string;
   patientId: string;
   patientName: string;
+  doctorId?: string;
   date: string;
   time: string;
   duration: number;
@@ -63,6 +76,9 @@ export interface Appointment {
   doctor: string;
   reason: string;
   status: AppointmentStatus;
+  priorityScore?: number;
+  origin?: string;
+  urgent?: boolean;
 }
 
 export interface SystemUser {
@@ -70,6 +86,10 @@ export interface SystemUser {
   name: string;
   email: string;
   role: UserRole;
+  specialty?: string;
+  cedula?: string;
+  credential?: string;
+  patientId?: string;
   status: UserStatus;
   lastAccess: string;
   color: string;
@@ -116,9 +136,10 @@ export interface RolePermission {
 }
 
 export interface SessionUser {
+  id?: string;
   name: string;
   email: string;
   role: UserRole;
   initials: string;
+  patientId?: string;
 }
-

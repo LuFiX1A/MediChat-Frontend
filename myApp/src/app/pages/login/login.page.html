@@ -14,14 +14,14 @@
       <span class="eyebrow">Expediente Médico Electrónico</span>
       <h1>El historial clínico del futuro, <em>en la nube.</em></h1>
       <p>
-        Unifica pacientes, consultas, notas clínicas y citas en una plataforma
+        Unifica pacientes, triaje asistido por IA, consultas y citas en una plataforma
         segura, trazable y disponible en la nube.
       </p>
     </div>
 
     <div class="brand-footer">
       <span>HealthText · Cloud &amp; Smart Record</span>
-      <span>Datos protegidos · Ley 1581 de 2012</span>
+      <span>Datos protegidos · Cifrado TLS 1.3</span>
     </div>
   </section>
 
@@ -33,25 +33,13 @@
       </div>
 
       <div class="auth-switch" role="tablist" aria-label="Acceso o registro de cuenta">
-        <button
-          type="button"
-          class="auth-tab"
-          role="tab"
-          [class.active]="mode === 'login'"
-          [attr.aria-selected]="mode === 'login'"
-          (click)="showLogin()"
-        >
+        <button type="button" class="auth-tab" role="tab" [class.active]="mode === 'login'"
+          [attr.aria-selected]="mode === 'login'" (click)="showLogin()">
           <ion-icon name="log-in-outline"></ion-icon>
           <span>Iniciar sesión</span>
         </button>
-        <button
-          type="button"
-          class="auth-tab"
-          role="tab"
-          [class.active]="mode === 'register'"
-          [attr.aria-selected]="mode === 'register'"
-          (click)="showRegister()"
-        >
+        <button type="button" class="auth-tab" role="tab" [class.active]="mode === 'register'"
+          [attr.aria-selected]="mode === 'register'" (click)="showRegister()">
           <ion-icon name="person-outline"></ion-icon>
           <span>Registrarme</span>
         </button>
@@ -59,9 +47,9 @@
 
       <ng-container *ngIf="mode === 'login'; else registerTpl">
         <div class="login-head">
-          <span class="eyebrow">Portal clínico</span>
+          <span class="eyebrow">Portal clínico y pacientes</span>
           <h2>Bienvenido de nuevo</h2>
-          <p>Ingresa con tu cuenta institucional para acceder al expediente médico electrónico.</p>
+          <p>Ingresa con tu cuenta de paciente, médico o administrador para acceder a la plataforma.</p>
         </div>
 
         <div class="success-box" *ngIf="success">
@@ -71,18 +59,11 @@
 
         <form (ngSubmit)="submit()" novalidate>
           <div class="ht-field">
-            <label for="email">Correo institucional</label>
+            <label for="email">Correo electrónico</label>
             <div class="ht-input-wrap">
               <ion-icon name="mail-outline"></ion-icon>
-              <input
-                id="email"
-                class="ht-input"
-                type="email"
-                name="email"
-                [(ngModel)]="email"
-                placeholder="nombre@healthtext.com"
-                autocomplete="username"
-              />
+              <input id="email" class="ht-input" type="email" name="email" [(ngModel)]="email"
+                placeholder="nombre@correo.com" autocomplete="username" />
             </div>
           </div>
 
@@ -90,16 +71,11 @@
             <label for="password">Contraseña</label>
             <div class="ht-input-wrap">
               <ion-icon name="lock-closed-outline"></ion-icon>
-              <input
-                id="password"
-                class="ht-input password-input"
-                [type]="showPassword ? 'text' : 'password'"
-                name="password"
-                [(ngModel)]="password"
-                placeholder="Ingresa tu contraseña"
-                autocomplete="current-password"
-              />
-              <button class="toggle-password" type="button" (click)="togglePassword()" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+              <input id="password" class="ht-input password-input" [type]="showPassword ? 'text' : 'password'"
+                name="password" [(ngModel)]="password" placeholder="Ingresa tu contraseña"
+                autocomplete="current-password" />
+              <button class="toggle-password" type="button" (click)="togglePassword()"
+                [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
                 <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
               </button>
             </div>
@@ -110,7 +86,7 @@
               <input type="checkbox" name="remember" [(ngModel)]="remember" />
               <span>Recordarme</span>
             </label>
-            <button type="button" class="forgot">¿Olvidaste tu contraseña?</button>
+            <button type="button" class="forgot" (click)="onForgotPassword()">¿Olvidaste tu contraseña?</button>
           </div>
 
           <div class="error-box" *ngIf="error">
@@ -126,32 +102,39 @@
         </form>
 
         <div class="auth-footnote">
-          <span>¿No tienes cuenta?</span>
+          <span>¿Eres paciente nuevo?</span>
           <button type="button" class="link-btn" (click)="showRegister()">Crea tu cuenta aquí</button>
         </div>
 
         <div class="demo-box">
           <div class="demo-title">
             <ion-icon name="key-outline"></ion-icon>
-            <span>Acceso de demostración</span>
+            <span>Acceso rápido de demostración</span>
           </div>
           <div class="demo-buttons">
-            <button class="demo-btn" type="button" (click)="useDemo('doctor')">
-              <ion-icon name="medical-outline"></ion-icon>
-              <div>
-                <b>Médica</b>
-                <span>doctor@healthtext.com</span>
+            <button class="demo-btn" type="button" (click)="useDemo('patient')">
+              <div class="demo-role">
+                <ion-icon name="person-outline"></ion-icon>
+                <b>Paciente</b>
               </div>
+              <span>paciente@healthtext.com</span>
+            </button>
+            <button class="demo-btn" type="button" (click)="useDemo('doctor')">
+              <div class="demo-role">
+                <ion-icon name="medical-outline"></ion-icon>
+                <b>Médico</b>
+              </div>
+              <span>doctor@healthtext.com</span>
             </button>
             <button class="demo-btn" type="button" (click)="useDemo('admin')">
-              <ion-icon name="shield-half-outline"></ion-icon>
-              <div>
-                <b>Administrador</b>
-                <span>admin@healthtext.com</span>
+              <div class="demo-role">
+                <ion-icon name="shield-half-outline"></ion-icon>
+                <b>Admin</b>
               </div>
+              <span>admin@healthtext.com</span>
             </button>
           </div>
-          <p class="demo-hint">Contraseña para ambas cuentas: <b>demo1234</b></p>
+          <p class="demo-hint">Contraseña para las tres cuentas: <b>demo1234</b></p>
         </div>
 
         <div class="secure-note">
@@ -162,93 +145,75 @@
 
       <ng-template #registerTpl>
         <div class="login-head">
-          <span class="eyebrow">Registro institucional</span>
+          <span class="eyebrow">Registro de pacientes</span>
           <h2>Crea tu cuenta</h2>
-          <p>Registra tu acceso como personal clínico. Las cuentas de administrador solo las crea el área de sistemas.</p>
+          <p>
+            Regístrate como paciente para consultar con MediChat IA y solicitar citas médicas.
+            El alta de personal médico es gestionada por el Administrador.
+          </p>
         </div>
 
         <form (ngSubmit)="submitRegister()" novalidate>
           <div class="ht-field">
-            <label for="register-name">Nombre completo</label>
+            <label for="register-name">Nombre completo *</label>
             <div class="ht-input-wrap">
               <ion-icon name="person-outline"></ion-icon>
-              <input
-                id="register-name"
-                class="ht-input"
-                type="text"
-                name="registerName"
-                [(ngModel)]="registerName"
-                placeholder="Ej. Dra. Camila Restrepo"
-                autocomplete="name"
-              />
+              <input id="register-name" class="ht-input" type="text" name="registerName" [(ngModel)]="registerName"
+                placeholder="Ej. Laura Martínez García" autocomplete="name" />
             </div>
           </div>
 
           <div class="ht-field">
-            <label for="register-email">Correo institucional</label>
+            <label for="register-email">Correo electrónico *</label>
             <div class="ht-input-wrap">
               <ion-icon name="mail-outline"></ion-icon>
-              <input
-                id="register-email"
-                class="ht-input"
-                type="email"
-                name="registerEmail"
-                [(ngModel)]="registerEmail"
-                placeholder="nombre@healthtext.com"
-                autocomplete="email"
-              />
-            </div>
-          </div>
-
-          <div class="ht-field">
-            <label for="register-role">Rol clínico</label>
-            <div class="ht-input-wrap">
-              <ion-icon name="people-outline"></ion-icon>
-              <select
-                id="register-role"
-                class="ht-select"
-                name="registerRole"
-                [(ngModel)]="registerRole"
-              >
-                <option value="Médico">Médico</option>
-                <option value="Enfermería">Enfermería</option>
-              </select>
+              <input id="register-email" class="ht-input" type="email" name="registerEmail" [(ngModel)]="registerEmail"
+                placeholder="tu.correo@ejemplo.com" autocomplete="email" />
             </div>
           </div>
 
           <div class="register-grid">
             <div class="ht-field">
-              <label for="register-password">Contraseña</label>
+              <label for="register-doc">CURP / Identificación</label>
+              <div class="ht-input-wrap">
+                <ion-icon name="card-outline"></ion-icon>
+                <input id="register-doc" class="ht-input" type="text" name="registerDocument"
+                  [(ngModel)]="registerDocument" placeholder="Opcional" />
+              </div>
+            </div>
+
+            <div class="ht-field">
+              <label for="register-insurance">Institución / Seguro</label>
+              <div class="ht-input-wrap">
+                <ion-icon name="medkit-outline"></ion-icon>
+                <input id="register-insurance" class="ht-input" type="text" name="registerInsurance"
+                  [(ngModel)]="registerInsurance" placeholder="IMSS Bienestar" />
+              </div>
+            </div>
+          </div>
+
+          <div class="register-grid">
+            <div class="ht-field">
+              <label for="register-password">Contraseña *</label>
               <div class="ht-input-wrap">
                 <ion-icon name="lock-closed-outline"></ion-icon>
-                <input
-                  id="register-password"
-                  class="ht-input password-input"
-                  [type]="showPassword ? 'text' : 'password'"
-                  name="registerPassword"
-                  [(ngModel)]="registerPassword"
-                  placeholder="Mínimo 8 caracteres"
-                  autocomplete="new-password"
-                />
-                <button class="toggle-password" type="button" (click)="togglePassword()" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                <input id="register-password" class="ht-input password-input"
+                  [type]="showPassword ? 'text' : 'password'" name="registerPassword" [(ngModel)]="registerPassword"
+                  placeholder="Mín. 8 caracteres" autocomplete="new-password" />
+                <button class="toggle-password" type="button" (click)="togglePassword()"
+                  [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
                   <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
                 </button>
               </div>
             </div>
 
             <div class="ht-field">
-              <label for="register-confirm">Confirmar contraseña</label>
+              <label for="register-confirm">Confirmar contraseña *</label>
               <div class="ht-input-wrap">
                 <ion-icon name="lock-closed-outline"></ion-icon>
-                <input
-                  id="register-confirm"
-                  class="ht-input"
-                  [type]="showPassword ? 'text' : 'password'"
-                  name="registerConfirm"
-                  [(ngModel)]="registerConfirm"
-                  placeholder="Repite la contraseña"
-                  autocomplete="new-password"
-                />
+                <input id="register-confirm" class="ht-input" [type]="showPassword ? 'text' : 'password'"
+                  name="registerConfirm" [(ngModel)]="registerConfirm" placeholder="Repite contraseña"
+                  autocomplete="new-password" />
               </div>
             </div>
           </div>
@@ -260,8 +225,8 @@
 
           <button class="ht-btn ht-btn-primary login-submit" type="submit" [disabled]="registerLoading">
             <ion-icon *ngIf="!registerLoading" name="person-outline"></ion-icon>
-            <span *ngIf="!registerLoading">Crear cuenta</span>
-            <span *ngIf="registerLoading">Creando cuenta...</span>
+            <span *ngIf="!registerLoading">Crear cuenta de paciente</span>
+            <span *ngIf="registerLoading">Creando expediente en la nube...</span>
           </button>
         </form>
 
@@ -272,7 +237,7 @@
 
         <div class="secure-note">
           <ion-icon name="lock-closed-outline"></ion-icon>
-          <span>Registro didáctico local · La cuenta se guarda solo en este navegador</span>
+          <span>Registro cifrado en la nube · Persistencia en Supabase &amp; MongoDB</span>
         </div>
       </ng-template>
     </div>

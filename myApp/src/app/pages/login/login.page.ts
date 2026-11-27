@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
 import { AuthService } from '../../core/auth.service';
-import { UserRole } from '../../core/models';
+import { DataService } from '../../core/data.service';
+import { SessionUser } from '../../core/models';
 
 @Component({
   selector: 'app-login',
@@ -26,19 +27,39 @@ export class LoginPage implements OnInit {
 
   registerName = '';
   registerEmail = '';
+  registerDocument = '';
+  registerAge: number | null = 28;
+  registerSex = 'Femenino';
+  registerPhone = '+52 449 000 0000';
+  registerInsurance = 'IMSS Bienestar';
   registerPassword = '';
   registerConfirm = '';
-  registerRole: UserRole = 'Médico';
   registerLoading = false;
   registerError = '';
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(
+    private auth: AuthService,
+    private data: DataService,
+    private router: Router,
+  ) { }
 
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
       const user = this.auth.current();
-      this.router.navigateByUrl(user?.role === 'Administrador' ? '/administracion' : '/dashboard');
+      if (user) {
+        this.router.navigateByUrl(this.routeForSession(user));
+      }
     }
+  }
+
+  private routeForSession(user: SessionUser): string {
+    if (user.role === 'Administrador') {
+      return '/administracion';
+    }
+    if (user.role === 'Paciente') {
+      return '/portal-paciente';
+    }
+    return '/dashboard';
   }
 
   showLogin(): void {
@@ -58,42 +79,59 @@ export class LoginPage implements OnInit {
     this.showPassword = !this.showPassword;
   }
 
-  useDemo(role: 'doctor' | 'admin'): void {
+  onForgotPassword(): void {
+    this.error = '';
+    this.success =
+      'Para restablecer credenciales institucionales o de paciente, solicita un reinicio seguro al Administrador de HealthText.';
+  }
+
+  useDemo(role: 'doctor' | 'admin' | 'patient'): void {
     this.mode = 'login';
-    this.email = role === 'doctor' ? 'doctor@healthtext.com' : 'admin@healthtext.com';
+    if (role === 'admin') {
+      this.email = 'admin@healthtext.com';
+    } else if (role === 'patient') {
+      this.email = 'paciente@healthtext.com';
+    } else {
+      this.email = 'doctor@healthtext.com';
+    }
     this.password = 'demo1234';
     this.error = '';
     this.success = '';
   }
 
-  submit(): void {
+  async submit(): Promise<void> {
     this.error = '';
     this.success = '';
 
     if (!this.email.trim() || !this.password.trim()) {
-      this.error = 'Ingresa tu correo institucional y contraseña.';
+      this.error = 'Ingresa tu correo y contraseña.';
       return;
     }
 
     if (!this.email.includes('@')) {
-      this.error = 'El correo institucional no tiene un formato válido.';
+      this.error = 'El correo electrónico no tiene un formato válido.';
       return;
     }
 
     this.loading = true;
 
-    setTimeout(() => {
-      const session = this.auth.login(this.email, this.password);
+    try {
+      const session = await this.auth.login(this.email, this.password);
       if (session) {
-        this.router.navigateByUrl(session.role === 'Administrador' ? '/administracion' : '/dashboard');
+        await this.data.syncAllFromCloud();
+        this.loading = false;
+        this.router.navigateByUrl(this.routeForSession(session));
         return;
       }
-      this.error = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
+      this.error = 'Credenciales incorrectas o usuario inactivo. Verifica tus datos.';
+    } catch {
+      this.error = 'No se pudo conectar con el servidor de HealthText.';
+    } finally {
       this.loading = false;
-    }, 550);
+    }
   }
 
-  submitRegister(): void {
+  async submitRegister(): Promise<void> {
     this.registerError = '';
 
     const name = this.registerName.trim();
@@ -105,7 +143,7 @@ export class LoginPage implements OnInit {
     }
 
     if (!email || !email.includes('@')) {
-      this.registerError = 'Ingresa un correo institucional válido.';
+      this.registerError = 'Ingresa un correo electrónico válido.';
       return;
     }
 
@@ -119,38 +157,38 @@ export class LoginPage implements OnInit {
       return;
     }
 
-    if (this.auth.isEmailTaken(email)) {
-      this.registerError = 'Ya existe una cuenta registrada con ese correo.';
-      return;
-    }
-
     this.registerLoading = true;
 
-    setTimeout(() => {
-      const session = this.auth.register(
-        name,
-        email,
-        this.registerPassword,
-        this.registerRole,
-      );
-
-      this.registerLoading = false;
+    try {
+      const session = await this.auth.register(name, email, this.registerPassword, {
+        document: this.registerDocument.trim() || undefined,
+        age: this.registerAge ?? 28,
+        sex: this.registerSex,
+        phone: this.registerPhone.trim() || '+52 449 000 0000',
+        insurance: this.registerInsurance.trim() || 'IMSS Bienestar',
+      });
 
       if (!session) {
-        this.registerError = 'No se pudo crear la cuenta. Intenta de nuevo.';
+        this.registerError = 'No se pudo crear la cuenta (es posible que el correo ya esté registrado).';
         return;
       }
+
+      await this.data.syncAllFromCloud();
 
       this.email = session.email;
       this.password = '';
       this.error = '';
-      this.success = `Cuenta creada para ${session.name}. Ya puedes iniciar sesión con tu contraseña.`;
+      this.success = `Cuenta de paciente creada para ${session.name} en la nube. Ya puedes iniciar sesión.`;
       this.registerName = '';
       this.registerEmail = '';
+      this.registerDocument = '';
       this.registerPassword = '';
       this.registerConfirm = '';
-      this.registerRole = 'Médico';
       this.mode = 'login';
-    }, 600);
+    } catch {
+      this.registerError = 'Error de conexión al registrar la cuenta.';
+    } finally {
+      this.registerLoading = false;
+    }
   }
 }

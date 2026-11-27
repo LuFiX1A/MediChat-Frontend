@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
+import { AuthService } from '../../core/auth.service';
 import { DataService } from '../../core/data.service';
 import {
   formatDateLong,
@@ -13,7 +14,7 @@ import {
   toISODate,
   todayISO,
 } from '../../core/format';
-import { Appointment, AppointmentStatus, Patient } from '../../core/models';
+import { Appointment, AppointmentStatus, Patient, SessionUser } from '../../core/models';
 import { badgeClass } from '../../core/ui';
 
 interface CalendarDay {
@@ -36,6 +37,22 @@ interface AppointmentForm {
   status: AppointmentStatus;
 }
 
+export interface HeuristicSuggestion {
+  doctor: string;
+  specialty: string;
+  date: string;
+  time: string;
+  risk: string;
+  priority_score: number;
+  justification: string;
+  heuristic_metrics: {
+    g_cost: number;
+    h_cost: number;
+    total_f_cost: number;
+  };
+  evaluated_states: number;
+}
+
 @Component({
   selector: 'app-appointments',
   templateUrl: './appointments.page.html',
@@ -56,15 +73,14 @@ export class AppointmentsPage implements OnInit {
     'Neurología',
     'Gastroenterología',
     'Endocrinología',
+    'Cardiología y Endocrinología',
+    'Medicina General y Triaje Clínico',
     'Psicología',
     'Urgencias',
   ];
-  readonly doctors = [
-    'Dra. Valentina Ortiz',
-    'Dr. Camilo Rojas',
-    'Dra. Natalia Cárdenas',
-    'Dr. Felipe Vargas',
-  ];
+
+  currentUser: SessionUser | null = null;
+  onlyMyAppointments = false;
 
   viewDate = new Date();
   selectedDate = this.today;
@@ -76,17 +92,39 @@ export class AppointmentsPage implements OnInit {
   modalError = '';
   savedMessage = '';
 
+  optimizing = false;
+  aiSuggestion: HeuristicSuggestion | null = null;
+
   form: AppointmentForm = this.emptyForm();
 
   constructor(
     private data: DataService,
+    private auth: AuthService,
     private route: ActivatedRoute,
     private router: Router,
-  ) {}
+  ) { }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    this.currentUser = this.auth.current();
+    this.onlyMyAppointments = this.currentUser?.role === 'Médico';
+
     const base = parseISODate(this.today);
     this.viewDate = new Date(base.getFullYear(), base.getMonth(), 1);
+    this.buildCalendar();
+
+    await this.data.fetchAppointments();
+
+    // Enfocar automáticamente una solicitud pendiente del médico en sesión si hoy no hay citas
+    const todayAppts = this.scopedAppointments.filter((a) => a.date === this.selectedDate);
+    if (todayAppts.length === 0) {
+      const pendingAppt = this.scopedAppointments.find((a) => a.status === 'Pendiente');
+      if (pendingAppt?.date) {
+        this.selectedDate = pendingAppt.date;
+        const parsedPending = parseISODate(pendingAppt.date);
+        this.viewDate = new Date(parsedPending.getFullYear(), parsedPending.getMonth(), 1);
+      }
+    }
+
     this.buildCalendar();
 
     this.route.queryParamMap.subscribe((params) => {
@@ -106,6 +144,33 @@ export class AppointmentsPage implements OnInit {
     });
   }
 
+  get isDoctorUser(): boolean {
+    return this.currentUser?.role === 'Médico';
+  }
+
+  get scopedAppointments(): Appointment[] {
+    if (!this.onlyMyAppointments || !this.currentUser) {
+      return this.data.appointments;
+    }
+    const myName = this.currentUser.name.trim().toLowerCase();
+    const myId = this.currentUser.id;
+    return this.data.appointments.filter(
+      (a) =>
+        (a.doctorId && myId && a.doctorId === myId) ||
+        (a.doctor ?? '').trim().toLowerCase() === myName,
+    );
+  }
+
+  toggleDoctorScope(): void {
+    this.onlyMyAppointments = !this.onlyMyAppointments;
+    this.buildCalendar();
+  }
+
+  get doctors(): string[] {
+    const active = this.data.activeDoctors.map((d) => d.name);
+    return active.length > 0 ? active : ['Dra. Valentina Ortiz', 'Dr. Camilo Rojas'];
+  }
+
   get monthLabel(): string {
     return formatMonthYear(this.viewDate);
   }
@@ -119,29 +184,32 @@ export class AppointmentsPage implements OnInit {
   }
 
   get selectedAppointments(): Appointment[] {
-    return this.data
-      .getAppointmentsByDate(this.selectedDate)
+    return this.scopedAppointments
+      .filter((appointment) => appointment.date === this.selectedDate)
       .filter((appointment) => this.filterSpecialty === 'Todas' || appointment.specialty === this.filterSpecialty);
   }
 
   get upcoming(): Appointment[] {
-    return this.data.getUpcomingAppointments(12);
+    return this.scopedAppointments
+      .filter((item) => item.status !== 'Cancelada' && item.status !== 'Completada' && item.date >= this.today)
+      .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
+      .slice(0, 12);
   }
 
   get todayCount(): number {
-    return this.data.getAppointmentsByDate(this.today).filter((item) => item.status !== 'Cancelada').length;
+    return this.scopedAppointments.filter((item) => item.date === this.today && item.status !== 'Cancelada').length;
   }
 
   get pendingCount(): number {
-    return this.data.appointments.filter((item) => item.status === 'Pendiente').length;
+    return this.scopedAppointments.filter((item) => item.status === 'Pendiente').length;
   }
 
   get confirmedCount(): number {
-    return this.data.appointments.filter((item) => item.status === 'Confirmada').length;
+    return this.scopedAppointments.filter((item) => item.status === 'Confirmada').length;
   }
 
   get cancelledCount(): number {
-    return this.data.appointments.filter((item) => item.status === 'Cancelada').length;
+    return this.scopedAppointments.filter((item) => item.status === 'Cancelada').length;
   }
 
   changeMonth(delta: number): void {
@@ -191,6 +259,7 @@ export class AppointmentsPage implements OnInit {
       this.form.reason = patient ? `Consulta de ${patient.name.split(' ')[0]}` : '';
     }
     this.modalError = '';
+    this.aiSuggestion = null;
     this.showModal = true;
   }
 
@@ -199,20 +268,79 @@ export class AppointmentsPage implements OnInit {
     this.form = {
       patientId: appointment.patientId,
       date: appointment.date,
-      time: appointment.time,
+      time: appointment.time === 'Por confirmar' || appointment.time === 'Lo antes posible' ? '09:00' : appointment.time,
       duration: appointment.duration,
       specialty: appointment.specialty,
       doctor: appointment.doctor,
       reason: appointment.reason,
-      status: appointment.status,
+      status: appointment.status === 'Pendiente' ? 'Confirmada' : appointment.status,
     };
     this.modalError = '';
+    this.aiSuggestion = null;
     this.showModal = true;
   }
 
   closeModal(): void {
     this.showModal = false;
     this.editingId = '';
+    this.aiSuggestion = null;
+  }
+
+  async suggestOptimalSlot(): Promise<void> {
+    this.modalError = '';
+    this.aiSuggestion = null;
+
+    if (!this.form.patientId) {
+      this.modalError = 'Selecciona primero un paciente para calcular su prioridad clínica con IA.';
+      return;
+    }
+
+    const patient = this.data.getPatient(this.form.patientId);
+    if (!patient) {
+      this.modalError = 'No se encontró el expediente del paciente.';
+      return;
+    }
+
+    this.optimizing = true;
+    try {
+      const response = await this.data.optimizeAppointment({
+        patient_id: patient.id,
+        patient_name: patient.name,
+        risk: patient.risk || 'Medio',
+        specialty: this.form.specialty,
+        duration: Number(this.form.duration) || 30,
+        preferred_date: this.form.date || this.today,
+        reason: this.form.reason.trim() || 'Valoración clínica prioritaria',
+      });
+
+      const best = response?.recommended_slot;
+      if (!best) {
+        this.modalError = 'No se encontraron bloques disponibles en los próximos 7 días.';
+        return;
+      }
+
+      this.form.date = best.date;
+      this.form.time = best.time;
+      if (this.doctors.includes(best.doctor)) {
+        this.form.doctor = best.doctor;
+      }
+
+      this.aiSuggestion = {
+        doctor: best.doctor,
+        specialty: best.specialty,
+        date: best.date,
+        time: best.time,
+        risk: best.risk,
+        priority_score: best.priority_score,
+        justification: best.justification,
+        heuristic_metrics: best.heuristic_metrics,
+        evaluated_states: response.evaluated_states ?? 0,
+      };
+    } catch {
+      this.modalError = 'No se pudo conectar con el motor heurístico de citas en FastAPI.';
+    } finally {
+      this.optimizing = false;
+    }
   }
 
   saveAppointment(): void {
@@ -251,6 +379,8 @@ export class AppointmentsPage implements OnInit {
       doctor: this.form.doctor,
       reason: this.form.reason.trim(),
       status: this.form.status,
+      priorityScore:
+        this.aiSuggestion?.priority_score ?? (patient.risk === 'Alto' ? 3 : patient.risk === 'Medio' ? 2 : 1),
     };
 
     if (this.editingId) {
@@ -260,7 +390,7 @@ export class AppointmentsPage implements OnInit {
         'Gestión de citas',
         `Se actualizó la cita de ${patient.name} para el ${formatDateShort(payload.date)} a las ${payload.time}.`,
       );
-      this.savedMessage = `Cita de ${patient.name} actualizada correctamente.`;
+      this.savedMessage = `Cita de ${patient.name} actualizada y confirmada.`;
     } else {
       this.data.addAppointment(payload);
       this.data.log(
@@ -277,6 +407,7 @@ export class AppointmentsPage implements OnInit {
     this.buildCalendar();
     this.showModal = false;
     this.editingId = '';
+    this.aiSuggestion = null;
   }
 
   setStatus(appointment: Appointment, status: AppointmentStatus): void {
@@ -314,9 +445,9 @@ export class AppointmentsPage implements OnInit {
     for (let index = 0; index < 42; index += 1) {
       const current = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index);
       const iso = toISODate(current);
-      const dayAppointments = this.data
-        .getAppointmentsByDate(iso)
-        .filter((appointment) => appointment.status !== 'Cancelada');
+      const dayAppointments = this.scopedAppointments.filter(
+        (appointment) => appointment.date === iso && appointment.status !== 'Cancelada',
+      );
 
       days.push({
         iso,
@@ -332,13 +463,20 @@ export class AppointmentsPage implements OnInit {
   }
 
   private emptyForm(): AppointmentForm {
+    const defaultDoctor =
+      this.currentUser?.role === 'Médico' && this.doctors.includes(this.currentUser.name)
+        ? this.currentUser.name
+        : this.doctors[0] || 'Dra. Valentina Ortiz';
+
+    const docProfile = this.data.activeDoctors.find((d) => d.name === defaultDoctor);
+
     return {
       patientId: '',
       date: this.today,
       time: '09:00',
       duration: 30,
-      specialty: 'Medicina General',
-      doctor: 'Dra. Valentina Ortiz',
+      specialty: docProfile?.specialty || 'Medicina General',
+      doctor: defaultDoctor,
       reason: '',
       status: 'Confirmada',
     };

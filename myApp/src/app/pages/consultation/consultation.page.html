@@ -26,10 +26,16 @@
       <b>Consulta guardada correctamente</b>
       <span>La nota clínica de {{ savedPatientName }} quedó registrada en su expediente y en la auditoría.</span>
     </div>
-    <a class="ht-btn ht-btn-success ht-btn-sm" [routerLink]="['/pacientes', savedPatientId]">
-      Abrir expediente
-      <ion-icon name="arrow-forward-outline"></ion-icon>
-    </a>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <a class="ht-btn ht-btn-ghost ht-btn-sm" routerLink="/citas" [queryParams]="{ patient: savedPatientId }">
+        <ion-icon name="calendar-outline"></ion-icon>
+        Agendar seguimiento
+      </a>
+      <a class="ht-btn ht-btn-success ht-btn-sm" [routerLink]="['/pacientes', savedPatientId]">
+        Abrir expediente
+        <ion-icon name="arrow-forward-outline"></ion-icon>
+      </a>
+    </div>
   </div>
 
   <div class="consult-layout">
@@ -85,7 +91,8 @@
                   <ion-icon name="warning-outline"></ion-icon>
                   Alergia: {{ allergy }}
                 </span>
-                <span class="ht-chip" *ngIf="selectedPatient.conditions.length === 0 && selectedPatient.allergies.length === 0">
+                <span class="ht-chip"
+                  *ngIf="selectedPatient.conditions.length === 0 && selectedPatient.allergies.length === 0">
                   Sin antecedentes relevantes
                 </span>
               </div>
@@ -110,22 +117,15 @@
         <div class="form-card-body">
           <div class="ht-field">
             <label>Síntomas reportados *</label>
-            <textarea
-              class="ht-textarea"
-              [(ngModel)]="consulta.symptoms"
-              placeholder="Ej. Dolor abdominal tipo cólico desde hace 2 días, asociado a náuseas y fiebre de 38.2 °C..."
-            ></textarea>
+            <textarea class="ht-textarea" [(ngModel)]="consulta.symptoms" (ngModelChange)="onClinicalTextChange()"
+              placeholder="Ej. Dolor abdominal tipo cólico desde hace 2 días, asociado a náuseas y fiebre de 38.2 °C..."></textarea>
             <small>Incluye inicio, duración, intensidad y factores que mejoran o empeoran el cuadro.</small>
           </div>
 
           <div class="symptom-chips">
             <span class="symptom-label">Síntomas frecuentes:</span>
-            <button
-              class="ht-chip ht-chip--button"
-              type="button"
-              *ngFor="let symptom of symptomSuggestions"
-              (click)="addSymptom(symptom)"
-            >
+            <button class="ht-chip ht-chip--button" type="button" *ngFor="let symptom of symptomSuggestions"
+              (click)="addSymptom(symptom)">
               <ion-icon name="add-outline"></ion-icon>
               {{ symptom }}
             </button>
@@ -145,11 +145,8 @@
         <div class="form-card-body">
           <div class="ht-field">
             <label>Notas clínicas</label>
-            <textarea
-              class="ht-textarea"
-              [(ngModel)]="consulta.notes"
-              placeholder="Hallazgos del examen físico, evolución, interpretación de ayudas diagnósticas..."
-            ></textarea>
+            <textarea class="ht-textarea" [(ngModel)]="consulta.notes" (ngModelChange)="onClinicalTextChange()"
+              placeholder="Hallazgos del examen físico, evolución, interpretación de ayudas diagnósticas..."></textarea>
           </div>
 
           <div class="vitals-form">
@@ -186,7 +183,8 @@
           <div class="ht-form-grid">
             <div class="ht-field ht-col-full">
               <label>Diagnóstico / impresión clínica *</label>
-              <input class="ht-input" [(ngModel)]="consulta.diagnosis" placeholder="Ej. Síndrome de intestino irritable" />
+              <input class="ht-input" [(ngModel)]="consulta.diagnosis" (ngModelChange)="onClinicalTextChange()"
+                placeholder="Ej. Síndrome de intestino irritable" />
             </div>
             <div class="ht-field">
               <label>Especialidad</label>
@@ -195,12 +193,24 @@
               </select>
             </div>
             <div class="ht-field">
-              <label>Nivel de riesgo</label>
-              <select class="ht-select" [(ngModel)]="consulta.risk">
+              <label>
+                Nivel de riesgo
+                <span *ngIf="nlpDetecting" style="font-size: 11px; color: #0284c7; font-weight: 500; margin-left: 6px;">
+                  Analizando texto (NLP)...
+                </span>
+                <span *ngIf="!nlpDetecting && nlpConfidence > 0"
+                  style="font-size: 11px; color: #0369a1; font-weight: 600; margin-left: 6px;">
+                  · IA NLP ({{ (nlpConfidence * 100) | number:'1.0-0' }}%)
+                </span>
+              </label>
+              <select class="ht-select" [(ngModel)]="consulta.risk" (ngModelChange)="onManualRiskChange()">
                 <option value="Bajo">Bajo</option>
                 <option value="Medio">Medio</option>
                 <option value="Alto">Alto</option>
               </select>
+              <small *ngIf="nlpKeywords.length > 0" style="color: #0369a1; margin-top: 4px; display: block;">
+                Términos clínicos detectados: {{ nlpKeywords.join(', ') }}
+              </small>
             </div>
             <div class="ht-field">
               <label>Estado del seguimiento</label>
@@ -212,11 +222,8 @@
             </div>
             <div class="ht-field ht-col-full">
               <label>Tratamiento e indicaciones</label>
-              <textarea
-                class="ht-textarea"
-                [(ngModel)]="consulta.treatment"
-                placeholder="Medicamentos, dosis, recomendaciones y próxima revisión..."
-              ></textarea>
+              <textarea class="ht-textarea" [(ngModel)]="consulta.treatment"
+                placeholder="Medicamentos, dosis, recomendaciones y próxima revisión..."></textarea>
             </div>
           </div>
 

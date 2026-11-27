@@ -5,7 +5,7 @@ import { IonIcon } from '@ionic/angular/standalone';
 import { AuthService } from '../../core/auth.service';
 import { DataService } from '../../core/data.service';
 import { formatDateLong, formatDateShort, greetingByHour, initials, todayISO } from '../../core/format';
-import { Appointment, Consultation, Patient } from '../../core/models';
+import { Appointment, Consultation, Patient, SessionUser } from '../../core/models';
 import { badgeClass, severityDotClass } from '../../core/ui';
 
 interface StatCard {
@@ -61,21 +61,46 @@ export class DashboardPage implements OnInit {
   followUpCount = 0;
   totalPatients = 0;
 
-  constructor(private data: DataService, private auth: AuthService) {}
+  constructor(private data: DataService, private auth: AuthService) { }
 
-  ngOnInit(): void {
-    this.userName = this.auth.current()?.name ?? 'Doctor(a)';
+  async ngOnInit(): Promise<void> {
+    const currentUser = this.auth.current();
+    this.userName = currentUser?.name ?? 'Doctor(a)';
+
+    await this.data.fetchAppointments();
+
+    const isDoctor = currentUser?.role === 'Médico';
+    const matchesCurrentDoctor = (doctorName?: string, doctorId?: string): boolean => {
+      if (!isDoctor || !currentUser) {
+        return true;
+      }
+      if (doctorId && currentUser.id && doctorId === currentUser.id) {
+        return true;
+      }
+      return (doctorName ?? '').trim().toLowerCase() === currentUser.name.trim().toLowerCase();
+    };
 
     const monthPrefix = this.today.slice(0, 7);
     const activePatients = this.data.patients.filter((patient) => patient.status !== 'Inactivo').length;
     const monthlyConsultations = this.data.patients.reduce(
       (total, patient) =>
-        total + patient.consultations.filter((consultation) => consultation.date.startsWith(monthPrefix)).length,
+        total +
+        patient.consultations.filter(
+          (consultation) =>
+            consultation.date.startsWith(monthPrefix) && matchesCurrentDoctor(consultation.doctor),
+        ).length,
       0,
     );
 
-    this.todayAppointments = this.data.getTodayAppointments();
-    this.nextAppointments = this.data.getUpcomingAppointments(5);
+    this.todayAppointments = this.data
+      .getTodayAppointments()
+      .filter((appt) => matchesCurrentDoctor(appt.doctor, appt.doctorId));
+
+    this.nextAppointments = this.data
+      .getUpcomingAppointments(30)
+      .filter((appt) => matchesCurrentDoctor(appt.doctor, appt.doctorId))
+      .slice(0, 5);
+
     this.followUp = this.data.patients
       .filter((patient) => patient.status === 'En seguimiento' || patient.risk === 'Alto')
       .slice(0, 5);
@@ -89,7 +114,11 @@ export class DashboardPage implements OnInit {
 
     this.recentConsultations = this.data.patients
       .reduce<Array<{ patient: Patient; consultation: Consultation }>>((entries, patient) => {
-        patient.consultations.forEach((consultation) => entries.push({ patient, consultation }));
+        patient.consultations.forEach((consultation) => {
+          if (matchesCurrentDoctor(consultation.doctor)) {
+            entries.push({ patient, consultation });
+          }
+        });
         return entries;
       }, [])
       .sort((a, b) => b.consultation.date.localeCompare(a.consultation.date))
@@ -143,15 +172,15 @@ export class DashboardPage implements OnInit {
         trend: '+2 este mes',
       },
       {
-        label: 'Citas de hoy',
+        label: isDoctor ? 'Mis citas de hoy' : 'Citas de hoy',
         value: String(this.todayAppointments.length),
-        detail: 'Agenda del equipo médico',
+        detail: isDoctor ? `Asignadas a ${this.userName}` : 'Agenda del equipo médico',
         icon: 'calendar-outline',
         tone: 'cyan',
         trend: `${this.nextAppointments.length} próximas`,
       },
       {
-        label: 'Consultas del mes',
+        label: isDoctor ? 'Mis consultas del mes' : 'Consultas del mes',
         value: String(monthlyConsultations),
         detail: 'Notas clínicas registradas',
         icon: 'medkit-outline',

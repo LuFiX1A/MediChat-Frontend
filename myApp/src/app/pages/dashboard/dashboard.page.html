@@ -125,42 +125,28 @@
         </a>
       </div>
 
-      <div class="ht-table-wrap">
-        <table class="ht-table">
-          <thead>
-            <tr>
-              <th>Paciente</th>
-              <th>Riesgo</th>
-              <th>Estado</th>
-              <th>Última visita</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let patient of followUp; trackBy: trackById">
-              <td>
-                <div class="ht-person">
-                  <div class="ht-avatar ht-avatar--sm" [style.background]="patient.color">
-                    {{ getInitials(patient.name) }}
-                  </div>
-                  <div class="ht-person-text">
-                    <b>{{ patient.name }}</b>
-                    <span>{{ patient.document }}</span>
-                  </div>
-                </div>
-              </td>
-              <td><span class="ht-badge" [ngClass]="badge(patient.risk)">{{ patient.risk }}</span></td>
-              <td><span class="ht-badge" [ngClass]="badge(patient.status)">{{ patient.status }}</span></td>
-              <td class="date-cell">{{ shortDate(patient.lastVisit) }}</td>
-              <td>
-                <a class="ht-link" [routerLink]="['/pacientes', patient.id]">
-                  Expediente
-                  <ion-icon name="chevron-forward-outline"></ion-icon>
-                </a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="appointment-list">
+        <div class="followup-row" *ngFor="let patient of followUp; trackBy: trackById">
+          <div class="ht-avatar ht-avatar--sm" [style.background]="patient.color">
+            {{ getInitials(patient.name) }}
+          </div>
+          <div class="appointment-main">
+            <div class="ht-person-text">
+              <b>{{ patient.name }}</b>
+              <span>{{ patient.document }} · Última visita: {{ shortDate(patient.lastVisit) }}</span>
+            </div>
+          </div>
+          <span class="ht-badge" [ngClass]="badge(patient.risk)">{{ patient.risk }}</span>
+          <a class="ht-btn ht-btn-ghost ht-btn-sm followup-btn" [routerLink]="['/pacientes', patient.id]">
+            <span>Expediente</span>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </a>
+        </div>
+
+        <div class="ht-empty" *ngIf="followUp.length === 0">
+          <ion-icon name="people-outline"></ion-icon>
+          No hay pacientes en seguimiento prioritario.
+        </div>
       </div>
     </article>
 

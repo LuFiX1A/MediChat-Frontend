@@ -28,18 +28,26 @@ export class LayoutComponent implements OnInit, OnDestroy {
   @ViewChild('shell') private shell?: ElementRef<HTMLElement>;
 
   sidebarOpen = false;
-  globalSearch = '';
-  pageTitle = 'Dashboard médico';
-  pageSubtitle = 'Resumen general de la actividad clínica';
   user: SessionUser | null = null;
   honeypotCount = 0;
 
+  // Menú clínico para Médicos / Enfermería (MediChat fue migrado al Portal de Pacientes)
   readonly doctorNav: NavItem[] = [
     { label: 'Dashboard médico', shortLabel: 'Inicio', route: '/dashboard', icon: 'grid-outline', exact: true },
     { label: 'Pacientes y expedientes', shortLabel: 'Pacientes', route: '/pacientes', icon: 'people-outline', exact: false },
-    { label: 'Chatbot médico', shortLabel: 'Chatbot', route: '/tabs/tab1', icon: 'chatbubble-ellipses-outline', exact: false },
     { label: 'Consulta médica', shortLabel: 'Consulta', route: '/consulta', icon: 'medkit-outline', exact: false },
     { label: 'Gestión de citas', shortLabel: 'Citas', route: '/citas', icon: 'calendar-outline', exact: false },
+  ];
+
+  // Menú para el Portal de Pacientes
+  readonly patientNav: NavItem[] = [
+    {
+      label: 'MediChat y Mis Citas',
+      shortLabel: 'Portal',
+      route: '/portal-paciente',
+      icon: 'chatbubble-ellipses-outline',
+      exact: false,
+    },
   ];
 
   readonly adminNav: NavItem[] = [
@@ -53,35 +61,54 @@ export class LayoutComponent implements OnInit, OnDestroy {
   ];
 
   private routerSub?: Subscription;
-
-  // Guards de rol desactivados temporalmente para facilitar las pruebas del equipo.
-  // Cambiar a true (y reactivar los canActivate de app.routes.ts) al final.
-  private readonly guardsEnabled = false;
+  private readonly guardsEnabled = true;
 
   constructor(
     private router: Router,
     private auth: AuthService,
     private data: DataService,
-  ) {}
+  ) { }
 
   get navItems(): NavItem[] {
-    return this.isAdmin ? this.adminNav : this.doctorNav;
+    if (this.isAdmin) {
+      return this.adminNav;
+    }
+    if (this.isPatient) {
+      return this.patientNav;
+    }
+    return this.doctorNav;
   }
 
   get isAdmin(): boolean {
     return this.user?.role === 'Administrador';
   }
 
+  get isPatient(): boolean {
+    return this.user?.role === 'Paciente';
+  }
+
+  get spaceLabel(): string {
+    if (this.isAdmin) {
+      return 'Espacio administrativo';
+    }
+    if (this.isPatient) {
+      return 'Portal del paciente';
+    }
+    return 'Espacio clínico';
+  }
+
   ngOnInit(): void {
     this.user = this.auth.current();
+    if (!this.user) {
+      this.router.navigateByUrl('/login');
+      return;
+    }
     this.refreshHoneypotCount();
-    this.updateHeader(this.router.url);
     this.guardRoleArea(this.router.url);
 
     this.routerSub = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe((event) => {
-        this.updateHeader(event.urlAfterRedirects);
         this.guardRoleArea(event.urlAfterRedirects);
         this.refreshHoneypotCount();
         this.sidebarOpen = false;
@@ -111,27 +138,13 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.router.navigateByUrl('/login');
   }
 
-  buscarGlobal(): void {
-    const query = this.globalSearch.trim();
-    if (!query) {
-      return;
-    }
-    this.router.navigate(['/pacientes'], { queryParams: { q: query } });
-    this.globalSearch = '';
-  }
-
-  irHoneypot(): void {
-    this.refreshHoneypotCount();
-    this.router.navigate(['/administracion'], { queryParams: { tab: 'honeypot' } });
-  }
-
   refreshHoneypotCount(): void {
     this.data.refreshHoneypot();
     this.honeypotCount = this.data.honeypotLog.length;
   }
 
   private guardRoleArea(url: string): void {
-    if (!this.guardsEnabled) {
+    if (!this.guardsEnabled || !this.user) {
       return;
     }
 
@@ -142,51 +155,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!this.isAdmin && clean.startsWith('/administracion')) {
-      this.router.navigateByUrl('/dashboard');
-    }
-  }
-
-  private updateHeader(url: string): void {
-    const clean = url.split('?')[0];
-
-    if (clean.startsWith('/pacientes/')) {
-      this.pageTitle = 'Expediente clínico';
-      this.pageSubtitle = 'Información integral, antecedentes e historial del paciente';
+    if (this.isPatient && !clean.startsWith('/portal-paciente')) {
+      this.router.navigateByUrl('/portal-paciente');
       return;
     }
 
-    if (clean.startsWith('/tabs')) {
-      this.pageTitle = 'Chatbot médico';
-      this.pageSubtitle = 'Orientación preliminar, triaje y análisis de imágenes clínicas';
-      return;
+    if (!this.isAdmin && !this.isPatient) {
+      if (clean.startsWith('/administracion') || clean.startsWith('/portal-paciente') || clean.startsWith('/chatbot')) {
+        this.router.navigateByUrl('/dashboard');
+      }
     }
-
-    const headers: Record<string, { title: string; subtitle: string }> = {
-      '/dashboard': {
-        title: 'Dashboard médico',
-        subtitle: 'Resumen general de la actividad clínica',
-      },
-      '/pacientes': {
-        title: 'Pacientes y expedientes',
-        subtitle: 'Historias clínicas, antecedentes y seguimiento',
-      },
-      '/consulta': {
-        title: 'Consulta médica',
-        subtitle: 'Registro de síntomas, diagnóstico y tratamiento',
-      },
-      '/citas': {
-        title: 'Gestión de citas',
-        subtitle: 'Calendario y agenda del equipo médico',
-      },
-      '/administracion': {
-        title: 'Administración y seguridad',
-        subtitle: 'Usuarios, roles, permisos y registros de auditoría',
-      },
-    };
-
-    const header = headers[clean] ?? headers['/dashboard'];
-    this.pageTitle = header.title;
-    this.pageSubtitle = header.subtitle;
   }
 }

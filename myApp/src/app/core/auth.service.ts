@@ -2,22 +2,6 @@ import { Injectable } from '@angular/core';
 import { SessionUser, UserRole } from './models';
 import { initials } from './format';
 
-interface DemoAccount {
-  email: string;
-  password: string;
-  name: string;
-  role: UserRole;
-}
-
-export interface RegisteredAccount {
-  name: string;
-  email: string;
-  password: string;
-  role: UserRole;
-  color: string;
-  createdAt: string;
-}
-
 export interface RegisteredAccountView {
   name: string;
   email: string;
@@ -25,23 +9,9 @@ export interface RegisteredAccountView {
   color: string;
 }
 
-const DEMO_ACCOUNTS: DemoAccount[] = [
-  {
-    email: 'doctor@healthtext.com',
-    password: 'demo1234',
-    name: 'Dra. Valentina Ortiz',
-    role: 'Médico',
-  },
-  {
-    email: 'admin@healthtext.com',
-    password: 'demo1234',
-    name: 'Sebastián Mejía',
-    role: 'Administrador',
-  },
-];
-
-const REGISTERED_STORAGE_KEY = 'ht_accounts';
+const API_BASE = 'http://127.0.0.1:8000/api';
 const SESSION_STORAGE_KEY = 'ht_session';
+const TOKEN_STORAGE_KEY = 'ht_token';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -54,121 +24,107 @@ export class AuthService {
     }
   }
 
+  getToken(): string | null {
+    try {
+      return localStorage.getItem(TOKEN_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
   isAuthenticated(): boolean {
     return this.current() !== null;
   }
 
-  login(email: string, password: string): SessionUser | null {
+  async login(email: string, password: string): Promise<SessionUser | null> {
     const normalized = email.trim().toLowerCase();
-    const demo = DEMO_ACCOUNTS.find(
-      (item) => item.email === normalized && item.password === password,
-    );
-    const registered = demo
-      ? undefined
-      : this.loadRegisteredAccounts().find(
-          (item) => item.email.toLowerCase() === normalized && item.password === password,
-        );
-
-    const account = demo ?? registered;
-    if (!account) {
-      return null;
-    }
-
-    const session: SessionUser = {
-      name: account.name,
-      email: normalized,
-      role: account.role,
-      initials: initials(account.name),
-    };
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-    return session;
-  }
-
-  isEmailTaken(email: string): boolean {
-    const normalized = email.trim().toLowerCase();
-    const demoExists = DEMO_ACCOUNTS.some((item) => item.email === normalized);
-    const registeredExists = this.loadRegisteredAccounts().some(
-      (item) => item.email.toLowerCase() === normalized,
-    );
-    return demoExists || registeredExists;
-  }
-
-  /**
-   * Registro didáctico: la cuenta se guarda únicamente en localStorage de este
-   * navegador. No apto para producción ni para contraseñas reales.
-   */
-  register(name: string, email: string, password: string, role: UserRole): SessionUser | null {
-    const normalized = email.trim().toLowerCase();
-    if (this.isEmailTaken(normalized)) {
-      return null;
-    }
-
-    const account: RegisteredAccount = {
-      name: name.trim(),
-      email: normalized,
-      password,
-      role,
-      color: this.colorFor(normalized),
-      createdAt: new Date().toISOString(),
-    };
-
-    const accounts = [...this.loadRegisteredAccounts(), account];
     try {
-      localStorage.setItem(REGISTERED_STORAGE_KEY, JSON.stringify(accounts));
-    } catch {
+      const response = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalized, password }),
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+      const session: SessionUser = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role as UserRole,
+        initials: data.user.initials || initials(data.user.name),
+        patientId: data.user.patientId || undefined,
+      };
+
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+      if (data.access_token) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, data.access_token);
+      }
+      return session;
+    } catch (error) {
+      console.error('Error conectando con /api/auth/login:', error);
       return null;
     }
+  }
 
-    return {
-      name: account.name,
-      email: account.email,
-      role: account.role,
-      initials: initials(account.name),
-    };
+  async register(
+    name: string,
+    email: string,
+    password: string,
+    extras: {
+      document?: string;
+      age?: number;
+      sex?: string;
+      phone?: string;
+      insurance?: string;
+    } = {},
+  ): Promise<SessionUser | null> {
+    const normalized = email.trim().toLowerCase();
+    try {
+      const response = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: normalized,
+          password,
+          role: 'Paciente',
+          document: extras.document || null,
+          age: extras.age ?? 28,
+          sex: extras.sex || 'Femenino',
+          phone: extras.phone || '+52 449 000 0000',
+          insurance: extras.insurance || 'IMSS Bienestar',
+        }),
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+      return {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: 'Paciente',
+        initials: data.initials || initials(data.name),
+        patientId: data.patientId || undefined,
+      };
+    } catch (error) {
+      console.error('Error conectando con /api/auth/register:', error);
+      return null;
+    }
   }
 
   registeredUsers(): RegisteredAccountView[] {
-    return this.loadRegisteredAccounts().map((account) => ({
-      name: account.name,
-      email: account.email,
-      role: account.role,
-      color: account.color,
-    }));
+    return [];
   }
 
   logout(): void {
     localStorage.removeItem(SESSION_STORAGE_KEY);
-  }
-
-  private loadRegisteredAccounts(): RegisteredAccount[] {
-    try {
-      const raw = localStorage.getItem(REGISTERED_STORAGE_KEY);
-      if (!raw) {
-        return [];
-      }
-      const parsed = JSON.parse(raw) as unknown;
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-      return (parsed as RegisteredAccount[]).filter(
-        (account) =>
-          account &&
-          typeof account.name === 'string' &&
-          typeof account.email === 'string' &&
-          typeof account.password === 'string' &&
-          typeof account.role === 'string',
-      );
-    } catch {
-      return [];
-    }
-  }
-
-  private colorFor(seed: string): string {
-    const palette = ['#2f9cc9', '#5b8def', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4'];
-    let hash = 0;
-    for (let index = 0; index < seed.length; index += 1) {
-      hash = (hash * 31 + seed.charCodeAt(index)) % palette.length;
-    }
-    return palette[hash];
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
   }
 }

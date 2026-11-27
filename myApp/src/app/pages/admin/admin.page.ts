@@ -24,6 +24,8 @@ interface NewUserForm {
   name: string;
   email: string;
   role: UserRole;
+  specialty: string;
+  cedula: string;
   status: UserStatus;
 }
 
@@ -59,6 +61,16 @@ const buildPermissions = (role: UserRole): RolePermission[] =>
 
     if (role === 'Auditor') {
       return { module, view: true, create: false, edit: false, delete: false };
+    }
+
+    if (role === 'Paciente') {
+      return {
+        module,
+        view: module === 'Gestión de citas',
+        create: module === 'Gestión de citas',
+        edit: false,
+        delete: false,
+      };
     }
 
     if (role === 'Enfermería') {
@@ -97,6 +109,7 @@ export class AdminPage implements OnInit {
     Médico: buildPermissions('Médico'),
     Enfermería: buildPermissions('Enfermería'),
     Auditor: buildPermissions('Auditor'),
+    Paciente: buildPermissions('Paciente'),
   };
 
   auditSeverity: 'todos' | AuditSeverity = 'todos';
@@ -114,7 +127,18 @@ export class AdminPage implements OnInit {
   readonly honeytokenRoute = '/pacientes/pac-canario-001';
   honeypotMessage = '';
 
-  readonly roles: UserRole[] = ['Administrador', 'Médico', 'Enfermería', 'Auditor'];
+  readonly roles: UserRole[] = ['Administrador', 'Médico', 'Enfermería', 'Auditor', 'Paciente'];
+  readonly specialties = [
+    'Medicina General',
+    'Dermatología',
+    'Cardiología',
+    'Neumología',
+    'Neurología',
+    'Gastroenterología',
+    'Endocrinología',
+    'Psicología',
+    'Urgencias',
+  ];
 
   readonly securityLayers: SecurityLayer[] = [
     {
@@ -195,7 +219,7 @@ export class AdminPage implements OnInit {
     private data: DataService,
     private route: ActivatedRoute,
     private router: Router,
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
@@ -226,7 +250,9 @@ export class AdminPage implements OnInit {
       const matchesTerm =
         !term ||
         user.name.toLowerCase().includes(term) ||
-        user.email.toLowerCase().includes(term);
+        user.email.toLowerCase().includes(term) ||
+        (user.cedula ?? '').toLowerCase().includes(term) ||
+        (user.specialty ?? '').toLowerCase().includes(term);
       const matchesRole = this.roleFilter === 'Todos' || user.role === this.roleFilter;
       return matchesTerm && matchesRole;
     });
@@ -342,6 +368,11 @@ export class AdminPage implements OnInit {
       return;
     }
 
+    if (this.nuevo.role === 'Médico' && !this.nuevo.cedula.trim()) {
+      this.userModalError = 'La cédula profesional es obligatoria para dar de alta a un Médico.';
+      return;
+    }
+
     const exists = this.data.users.some(
       (user) => user.email.toLowerCase() === this.nuevo.email.trim().toLowerCase(),
     );
@@ -354,6 +385,9 @@ export class AdminPage implements OnInit {
       name: this.nuevo.name.trim(),
       email: this.nuevo.email.trim().toLowerCase(),
       role: this.nuevo.role,
+      specialty: this.nuevo.role === 'Médico' ? this.nuevo.specialty : undefined,
+      cedula: this.nuevo.cedula.trim() || undefined,
+      credential: this.nuevo.cedula.trim() || undefined,
       status: this.nuevo.status,
       lastAccess: 'Sin acceso',
       color: '#2f9cc9',
@@ -362,7 +396,7 @@ export class AdminPage implements OnInit {
     this.data.log(
       'Usuario creado',
       'Administración',
-      `Se creó la cuenta de ${created.name} con rol ${created.role}.`,
+      `Se creó la cuenta de ${created.name} con rol ${created.role}${created.cedula ? ` (Cédula ${created.cedula})` : ''}.`,
       created.role === 'Administrador' ? 'warning' : 'info',
     );
 
@@ -443,7 +477,7 @@ export class AdminPage implements OnInit {
     if (Number.isNaN(date.getTime())) {
       return iso;
     }
-    return date.toLocaleString('es-CO', {
+    return date.toLocaleString('es-MX', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -455,7 +489,7 @@ export class AdminPage implements OnInit {
 
   refreshHoneypotLog(): void {
     this.data.refreshHoneypot();
-    this.honeypotMessage = `Se recargaron ${this.honeypotLog.length} eventos desde el almacenamiento local.`;
+    this.honeypotMessage = `Se recargaron ${this.honeypotLog.length} eventos desde la nube.`;
     this.activeTab = 'honeypot';
   }
 
@@ -491,6 +525,8 @@ export class AdminPage implements OnInit {
       name: '',
       email: '',
       role: 'Médico',
+      specialty: 'Medicina General',
+      cedula: '',
       status: 'Activo',
     };
   }

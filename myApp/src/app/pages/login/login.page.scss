@@ -93,7 +93,7 @@
     }
   }
 
-  > p {
+  >p {
     margin-top: 18px;
     font-size: 0.9rem;
     line-height: 1.7;
@@ -273,16 +273,16 @@
 }
 
 .password-input {
-  padding-right: 44px;
+  padding-right: 36px;
 }
 
 .toggle-password {
   position: absolute;
-  right: 7px;
+  right: 5px;
   top: 50%;
   transform: translateY(-50%);
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: none;
   background: transparent;
   color: #8fa3b8;
@@ -290,7 +290,7 @@
   cursor: pointer;
   display: grid;
   place-items: center;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
 
   &:hover {
     background: #eef4f9;
@@ -388,15 +388,17 @@
 
 .demo-buttons {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: 1fr;
+  gap: 7px;
 }
 
 .demo-btn {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 9px 10px;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
   border-radius: 10px;
   background: #fff;
   border: 1px solid var(--ht-border);
@@ -404,23 +406,27 @@
   text-align: left;
   transition: 0.15s ease;
 
-  ion-icon {
-    font-size: 1.15rem;
-    color: var(--ht-cyan-deep);
+  .demo-role {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     flex-shrink: 0;
-  }
 
-  b {
-    display: block;
-    font-size: 0.72rem;
-    color: var(--ht-navy);
+    ion-icon {
+      font-size: 1.05rem;
+      color: var(--ht-cyan-deep);
+    }
+
+    b {
+      font-size: 0.75rem;
+      color: var(--ht-navy);
+    }
   }
 
   span {
-    display: block;
-    font-size: 0.6rem;
+    font-size: 0.72rem;
     color: var(--ht-muted);
-    margin-top: 1px;
+    white-space: nowrap;
   }
 
   &:hover {
@@ -431,7 +437,7 @@
 
 .demo-hint {
   margin-top: 9px;
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   color: var(--ht-muted);
   text-align: center;
 
@@ -494,8 +500,10 @@
     border-radius: 20px;
   }
 
-  .demo-buttons {
-    grid-template-columns: 1fr;
+  .demo-btn {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
   }
 
   .register-grid {

@@ -4,11 +4,17 @@
       <span class="ht-eyebrow"><ion-icon name="calendar-outline"></ion-icon> Agenda clínica</span>
       <h2 class="ht-title">Gestión de citas</h2>
       <p class="ht-subtitle">
-        Consulta la agenda del equipo médico, agenda nuevas citas y actualiza su estado.
-        Cada movimiento queda registrado en la auditoría del sistema.
+        {{ onlyMyAppointments && currentUser
+        ? 'Mostrando exclusivamente las solicitudes y citas asignadas a ' + currentUser.name + '.'
+        : 'Revisa solicitudes enviadas desde MediChat, agenda nuevas citas con optimización heurística y confirma
+        horarios del equipo médico.' }}
       </p>
     </div>
     <div class="ht-actions">
+      <button *ngIf="isDoctorUser" class="ht-btn ht-btn-ghost" type="button" (click)="toggleDoctorScope()">
+        <ion-icon name="people-outline"></ion-icon>
+        {{ onlyMyAppointments ? 'Mis citas (Ver clínica)' : 'Toda la clínica (Ver mis citas)' }}
+      </button>
       <button class="ht-btn ht-btn-ghost" type="button" (click)="goToday()">
         <ion-icon name="time-outline"></ion-icon>
         Hoy
@@ -31,7 +37,7 @@
   <section class="appointment-kpis">
     <div class="kpi">
       <span class="kpi-icon blue"><ion-icon name="calendar-number-outline"></ion-icon></span>
-      <div><b>{{ todayCount }}</b><span>Citas para hoy</span></div>
+      <div><b>{{ todayCount }}</b><span>{{ onlyMyAppointments ? 'Mis citas hoy' : 'Citas para hoy' }}</span></div>
     </div>
     <div class="kpi">
       <span class="kpi-icon green"><ion-icon name="checkmark-circle-outline"></ion-icon></span>
@@ -71,15 +77,8 @@
         </div>
 
         <div class="days-grid">
-          <button
-            class="day-cell"
-            type="button"
-            *ngFor="let day of calendarDays"
-            [class.outside]="!day.inMonth"
-            [class.today]="day.isToday"
-            [class.selected]="day.iso === selectedDate"
-            (click)="selectDay(day)"
-          >
+          <button class="day-cell" type="button" *ngFor="let day of calendarDays" [class.outside]="!day.inMonth"
+            [class.today]="day.isToday" [class.selected]="day.iso === selectedDate" (click)="selectDay(day)">
             <span class="day-number">{{ day.day }}</span>
             <span class="day-events" *ngIf="day.count > 0">
               <i class="dot" [class.pending]="day.hasCritical"></i>
@@ -90,7 +89,7 @@
 
         <div class="calendar-legend">
           <span><i class="legend-dot confirmed"></i> Citas confirmadas</span>
-          <span><i class="legend-dot pending"></i> Citas pendientes</span>
+          <span><i class="legend-dot pending"></i> Solicitudes pendientes</span>
           <span><i class="legend-dot today"></i> Hoy</span>
         </div>
       </div>
@@ -136,36 +135,37 @@
                 </div>
                 <span class="ht-badge" [ngClass]="badge(appointment.status)">{{ appointment.status }}</span>
               </div>
-              <p class="day-reason">{{ appointment.reason }}</p>
+              <p class="day-reason">
+                <span *ngIf="appointment.origin === 'MediChat'" class="ht-badge ht-badge--info"
+                  style="margin-right: 6px; font-size: 10px;">
+                  MediChat IA
+                </span>
+                <span *ngIf="appointment.urgent" class="ht-badge ht-badge--danger"
+                  style="margin-right: 6px; font-size: 10px;">
+                  Urgente
+                </span>
+                {{ appointment.reason }}
+              </p>
               <div class="day-actions">
                 <button class="ht-link" type="button" (click)="editAppointment(appointment)">
                   <ion-icon name="create-outline"></ion-icon>
-                  Modificar
+                  {{ appointment.status === 'Pendiente' ? 'Asignar hora y confirmar' : 'Modificar' }}
                 </button>
-                <button
-                  class="ht-link"
-                  type="button"
+                <button class="ht-link" type="button"
                   *ngIf="appointment.status !== 'Confirmada' && appointment.status !== 'Completada'"
-                  (click)="setStatus(appointment, 'Confirmada')"
-                >
+                  (click)="setStatus(appointment, 'Confirmada')">
                   <ion-icon name="checkmark-circle-outline"></ion-icon>
-                  Confirmar
+                  Confirmar rápido
                 </button>
-                <button
-                  class="ht-link"
-                  type="button"
+                <button class="ht-link" type="button"
                   *ngIf="appointment.status !== 'Completada' && appointment.status !== 'Cancelada'"
-                  (click)="setStatus(appointment, 'Completada')"
-                >
+                  (click)="setStatus(appointment, 'Completada')">
                   <ion-icon name="checkmark"></ion-icon>
                   Completar
                 </button>
-                <button
-                  class="ht-link link-danger"
-                  type="button"
+                <button class="ht-link link-danger" type="button"
                   *ngIf="appointment.status !== 'Cancelada' && appointment.status !== 'Completada'"
-                  (click)="setStatus(appointment, 'Cancelada')"
-                >
+                  (click)="setStatus(appointment, 'Cancelada')">
                   <ion-icon name="close-outline"></ion-icon>
                   Cancelar
                 </button>
@@ -185,8 +185,10 @@
   <article class="ht-card upcoming-card">
     <div class="ht-card-head">
       <div>
-        <h3>Próximas citas</h3>
-        <p>Agenda consolidada del equipo médico</p>
+        <h3>{{ onlyMyAppointments ? 'Mis próximas citas y solicitudes pendientes' : 'Próximas citas y solicitudes
+          pendientes' }}</h3>
+        <p>{{ onlyMyAppointments && currentUser ? 'Agenda personal de ' + currentUser.name : 'Agenda consolidada del
+          equipo médico' }}</p>
       </div>
       <span class="ht-badge ht-badge--info">{{ upcoming.length }} programadas</span>
     </div>
@@ -218,7 +220,8 @@
                 </div>
                 <div class="ht-person-text">
                   <b>{{ appointment.patientName }}</b>
-                  <span>{{ appointment.duration }} minutos</span>
+                  <span>{{ appointment.origin === 'MediChat' ? 'Solicitud MediChat' : appointment.duration + ' min'
+                    }}</span>
                 </div>
               </div>
             </td>
@@ -232,16 +235,12 @@
                   <ion-icon name="create-outline"></ion-icon>
                   Editar
                 </button>
-                <button class="ht-icon-btn" type="button" title="Abrir expediente" (click)="verExpediente(appointment.patientId)">
+                <button class="ht-icon-btn" type="button" title="Abrir expediente"
+                  (click)="verExpediente(appointment.patientId)">
                   <ion-icon name="document-text-outline"></ion-icon>
                 </button>
-                <button
-                  class="ht-icon-btn ht-icon-btn--danger"
-                  type="button"
-                  title="Cancelar cita"
-                  *ngIf="appointment.status !== 'Cancelada'"
-                  (click)="setStatus(appointment, 'Cancelada')"
-                >
+                <button class="ht-icon-btn ht-icon-btn--danger" type="button" title="Cancelar cita"
+                  *ngIf="appointment.status !== 'Cancelada'" (click)="setStatus(appointment, 'Cancelada')">
                   <ion-icon name="trash-outline"></ion-icon>
                 </button>
               </div>
@@ -250,11 +249,6 @@
         </tbody>
       </table>
     </div>
-
-    <div class="ht-empty" *ngIf="upcoming.length === 0">
-      <ion-icon name="calendar-outline"></ion-icon>
-      No hay citas próximas registradas.
-    </div>
   </article>
 </div>
 
@@ -262,9 +256,10 @@
   <div class="modal-card" (click)="$event.stopPropagation()">
     <div class="modal-head">
       <div>
-        <span class="ht-eyebrow"><ion-icon name="calendar-outline"></ion-icon> {{ editingId ? 'Editar cita' : 'Nueva cita' }}</span>
-        <h3>{{ editingId ? 'Modificar cita médica' : 'Agendar cita médica' }}</h3>
-        <p>Completa la información de la cita. Los campos con * son obligatorios.</p>
+        <span class="ht-eyebrow"><ion-icon name="calendar-outline"></ion-icon> {{ editingId ? 'Editar / Confirmar cita'
+          : 'Nueva cita' }}</span>
+        <h3>{{ editingId ? 'Programar y confirmar cita médica' : 'Agendar cita médica' }}</h3>
+        <p>Usa el botón de IA Heurística para encontrar el horario óptimo sin traslapes.</p>
       </div>
       <button class="ht-icon-btn" type="button" (click)="closeModal()" aria-label="Cerrar">
         <ion-icon name="close-outline"></ion-icon>
@@ -278,9 +273,49 @@
           <select class="ht-select" [(ngModel)]="form.patientId">
             <option value="">Selecciona un paciente...</option>
             <option *ngFor="let patient of patients" [value]="patient.id">
-              {{ patient.name }} · {{ patient.document }}
+              {{ patient.name }} · {{ patient.document }} (Riesgo {{ patient.risk }})
             </option>
           </select>
+        </div>
+
+        <div class="ht-field">
+          <label>Especialidad</label>
+          <select class="ht-select" [(ngModel)]="form.specialty">
+            <option *ngFor="let specialty of specialties" [value]="specialty">{{ specialty }}</option>
+          </select>
+        </div>
+
+        <div class="ht-field">
+          <label>Duración</label>
+          <select class="ht-select" [(ngModel)]="form.duration">
+            <option *ngFor="let duration of durations" [value]="duration">{{ duration }} minutos</option>
+          </select>
+        </div>
+
+        <div class="ht-col-full" style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" class="ht-btn"
+            style="background: linear-gradient(135deg, #0ea5e9, #2563eb); color: #fff; border: none; justify-content: center; font-weight: 600; width: 100%;"
+            (click)="suggestOptimalSlot()" [disabled]="optimizing">
+            <ion-icon name="sparkles-outline"></ion-icon>
+            <span *ngIf="!optimizing">Sugerir cita óptima (IA Heurística)</span>
+            <span *ngIf="optimizing">Calculando horario óptimo f(n) = g(n) + h(n)...</span>
+          </button>
+
+          <div *ngIf="aiSuggestion"
+            style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 12px 14px; font-size: 13px; color: #0c4a6e;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <strong>Asignación Óptima IA · Riesgo {{ aiSuggestion.risk }}</strong>
+              <span style="background: #0284c7; color: #fff; padding: 2px 8px; border-radius: 999px; font-size: 11px;">
+                f(n) = {{ aiSuggestion.heuristic_metrics.total_f_cost }}
+              </span>
+            </div>
+            <p style="margin: 4px 0 6px 0; line-height: 1.4;">{{ aiSuggestion.justification }}</p>
+            <div style="font-size: 11px; color: #0369a1; display: flex; gap: 12px; flex-wrap: wrap;">
+              <span><b>g(n) operativo:</b> {{ aiSuggestion.heuristic_metrics.g_cost }}</span>
+              <span><b>h(n) urgencia:</b> {{ aiSuggestion.heuristic_metrics.h_cost }}</span>
+              <span><b>Estados evaluados:</b> {{ aiSuggestion.evaluated_states }}</span>
+            </div>
+          </div>
         </div>
 
         <div class="ht-field">
@@ -291,20 +326,6 @@
         <div class="ht-field">
           <label>Hora *</label>
           <input class="ht-input" type="time" [(ngModel)]="form.time" />
-        </div>
-
-        <div class="ht-field">
-          <label>Duración</label>
-          <select class="ht-select" [(ngModel)]="form.duration">
-            <option *ngFor="let duration of durations" [value]="duration">{{ duration }} minutos</option>
-          </select>
-        </div>
-
-        <div class="ht-field">
-          <label>Especialidad</label>
-          <select class="ht-select" [(ngModel)]="form.specialty">
-            <option *ngFor="let specialty of specialties" [value]="specialty">{{ specialty }}</option>
-          </select>
         </div>
 
         <div class="ht-field">
@@ -323,11 +344,8 @@
 
         <div class="ht-field ht-col-full">
           <label>Motivo de la cita *</label>
-          <textarea
-            class="ht-textarea"
-            [(ngModel)]="form.reason"
-            placeholder="Ej. Control de hipertensión arterial y revisión de resultados"
-          ></textarea>
+          <textarea class="ht-textarea" [(ngModel)]="form.reason"
+            placeholder="Ej. Control de hipertensión arterial y revisión de resultados"></textarea>
         </div>
       </div>
 
@@ -341,7 +359,7 @@
       <button class="ht-btn ht-btn-ghost" type="button" (click)="closeModal()">Cancelar</button>
       <button class="ht-btn ht-btn-primary" type="button" (click)="saveAppointment()">
         <ion-icon name="checkmark-circle-outline"></ion-icon>
-        {{ editingId ? 'Guardar cambios' : 'Agendar cita' }}
+        {{ editingId ? 'Confirmar y guardar' : 'Agendar cita' }}
       </button>
     </div>
   </div>

@@ -78,13 +78,8 @@
 
   <section class="ht-card detail-card">
     <div class="ht-tabs">
-      <button
-        class="ht-tab"
-        type="button"
-        *ngFor="let tab of tabs"
-        [class.active]="activeTab === tab.id"
-        (click)="setTab(tab.id)"
-      >
+      <button class="ht-tab" type="button" *ngFor="let tab of tabs" [class.active]="activeTab === tab.id"
+        (click)="setTab(tab.id)">
         <ion-icon [name]="tab.icon"></ion-icon>
         {{ tab.label }}
       </button>
@@ -102,7 +97,7 @@
               <div><span>Teléfono</span><b>{{ patient.phone }}</b></div>
               <div><span>Correo</span><b>{{ patient.email }}</b></div>
               <div class="full"><span>Dirección</span><b>{{ patient.address }}</b></div>
-              <div><span>EPS / Afiliación</span><b>{{ patient.insurance }}</b></div>
+              <div><span>Institución / Seguro</span><b>{{ patient.insurance }}</b></div>
               <div><span>Documento</span><b>{{ patient.document }}</b></div>
             </div>
           </article>
@@ -138,6 +133,26 @@
             <div class="ht-empty" *ngIf="patient.consultations.length === 0">
               <ion-icon name="document-text-outline"></ion-icon>
               Aún no hay consultas registradas.
+            </div>
+          </article>
+
+          <article class="subcard" *ngIf="patient.triageNotes && patient.triageNotes.length > 0">
+            <div class="subcard-head">
+              <h4><ion-icon name="chatbubble-ellipses-outline"></ion-icon> Pre-triaje MediChat AI</h4>
+              <span class="ht-badge ht-badge--info">{{ patient.triageNotes.length }} sesiones</span>
+            </div>
+            <div class="mini-note" *ngFor="let tri of patient.triageNotes">
+              <div class="mini-note-head">
+                <b>{{ tri.summary }}</b>
+                <span>{{ shortDate(tri.date) }} · {{ tri.time }}</span>
+              </div>
+              <p>
+                Riesgo NLP: <b>{{ tri.nlpRisk }}</b>
+                <span *ngIf="tri.burnGrade"> · Quemadura detectada Grado {{ tri.burnGrade }}</span>
+              </p>
+              <small *ngIf="tri.recommendedDoctor">
+                Canalizado con {{ tri.recommendedDoctor }} ({{ tri.recommendedSpecialty }})
+              </small>
             </div>
           </article>
         </div>
@@ -236,7 +251,8 @@
             y quedan registrados en la auditoría del sistema.
           </p>
           <div class="chip-row">
-            <span class="ht-chip"><ion-icon name="time-outline"></ion-icon> Última actualización: {{ shortDate(patient.lastVisit) }}</span>
+            <span class="ht-chip"><ion-icon name="time-outline"></ion-icon> Última actualización: {{
+              shortDate(patient.lastVisit) }}</span>
           </div>
         </article>
       </div>
